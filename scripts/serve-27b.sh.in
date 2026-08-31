@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# 27B server launcher (rendered by setup.sh — do not edit directly)
+# @MODEL@ on :10012, 128K ctx, hot prefix cache on. BOOT THIS ONE FIRST.
+set -u
+BIN="@BIN@"
+MODEL="@MODEL@"
+KEY="@KEY@"
+PORT=10012
+LOG="${LOG:-/tmp/qwen38-stack/27b.log}"
+mkdir -p "$(dirname "$LOG")"
+
+lsof -tnP -iTCP:$PORT -sTCP:LISTEN 2>/dev/null | xargs kill 2>/dev/null
+sleep 2
+
+nohup "$BIN" --model "$MODEL" --serve --host 127.0.0.1 --port $PORT \
+  --ctx-size 131072 --timeout 0 \
+  --ssm-checkpoint-stride 256 --ssm-checkpoint-max 4 \
+  --prefix-cache-mem 12GB --api-key "$KEY" >> "$LOG" 2>&1 &
+
+echo "27b launcher: pid $! → $LOG (expect 'Hot prefix cache: ENABLED')"

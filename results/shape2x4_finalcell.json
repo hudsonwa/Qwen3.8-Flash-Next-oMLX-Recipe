@@ -1,0 +1,49 @@
+{
+ "started": "2026-08-31T01:33:53+0800",
+ "t0_flash_fp": "67GB",
+ "t0_27b_fp": "21GB",
+ "tick-at-120s": {
+  "ttft_s": 0.007,
+  "wall_s": 1.91,
+  "prompt_tokens": 25,
+  "completion_tokens": 1,
+  "error": null,
+  "flash_fp_at": "71GB",
+  "w27_fp_at": "15GB"
+ },
+ "tick-at-420s": {
+  "ttft_s": 0.007,
+  "wall_s": 0.85,
+  "prompt_tokens": 25,
+  "completion_tokens": 1,
+  "error": null,
+  "flash_fp_at": "76GB",
+  "w27_fp_at": "15GB"
+ },
+ "total_wall_s": 1264.65,
+ "fills": {
+  "flash-A": {
+   "ttft_s": 0.151,
+   "wall_s": 621.37,
+   "prompt_tokens": 240341,
+   "completion_tokens": 3,
+   "error": null
+  },
+  "flash-B": {
+   "ttft_s": 0.149,
+   "wall_s": 1264.65,
+   "prompt_tokens": 240341,
+   "completion_tokens": 3,
+   "error": null
+  }
+ },
+ "post_fill_flash_fp": "76GB",
+ "post_fill_27b_fp": "15GB",
+ "27b_hotresume_s0": {
+  "ttft_s": 0.1,
+  "wall_s": 267.61,
+  "prompt_tokens": 112566,
+  "completion_tokens": 3,
+  "error": null
+ }
+}

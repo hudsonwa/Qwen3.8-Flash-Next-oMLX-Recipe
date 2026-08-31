@@ -2,7 +2,7 @@
 # Public-readiness sweep: fail if personal patterns appear in TRACKED files.
 # Run before any push or visibility change. Exits 1 on any hit in tracked content.
 set -u
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 pats='joshua|hudsonwa|jhudson1980|mortimer|/Users/[a-z]+|\.hermes|exmachina'
 hits=0
 while IFS= read -r f; do

@@ -43,13 +43,14 @@ if [ -n "$gen" ]; then say "live generation: ${gen}"; else miss "live generation
 
 # 4. Boot log: enforcer line (rotation-aware — oMLX rotates server.log at midnight,
 #    so the boot-time line may live in the rotated file)
+# shellcheck disable=SC2012  # deliberate glob over our own server.log* files
 log_newest="$(ls -t "$HOME"/.omlx/logs/server.log* 2>/dev/null | head -2)"
 if [ -n "${log_newest:-}" ]; then
-  if cat $log_newest | grep -q "memory enforcer started"; then
-    say "enforcer line found in $(echo $log_newest | tr ' ' ',')"
-  else
-    miss "enforcer line not found in newest server logs"
-  fi
+  found=0
+  for lf in ${log_newest}; do  # shellcheck disable=SC2086  # 1-2 space-free paths from the glob above
+    grep -q "memory enforcer started" "$lf" && found=1 && say "enforcer line found in $lf"
+  done
+  [ "$found" = "1" ] || miss "enforcer line not found in newest server logs"
 else
   say "NOTE: no ~/.omlx/logs/server.log* yet — skipping log check"
 fi

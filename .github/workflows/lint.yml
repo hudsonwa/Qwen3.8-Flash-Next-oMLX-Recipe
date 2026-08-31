@@ -1,0 +1,28 @@
+name: lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Shell syntax + shellcheck (all repo shell scripts)
+        run: |
+          for f in setup.sh scripts/*.sh; do
+            bash -n "$f"
+          done
+          shellcheck -x setup.sh scripts/*.sh
+
+      - name: Plist template is valid XML
+        run: python3 -c "import xml.etree.ElementTree as ET; ET.parse('scripts/com.omlx.flash8slot.plist.in'); print('plist XML OK')"
+
+      - name: Python battery compiles
+        run: python3 -m py_compile scripts/warm-8slot.py && echo "py compile OK"
+
+      - name: Personal-pattern scrub guard
+        run: bash scripts/check-scrub.sh

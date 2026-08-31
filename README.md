@@ -1,5 +1,15 @@
 # Qwen3.8 Flash-Next on a 128 GB Mac — oMLX single-server, 8-slot recipe
 
+## TL;DR (non-technical)
+
+- **What it is:** a free, do-it-yourself recipe that turns a 128 GB Apple Silicon Mac (M5 Max-class MacBook Pro) into a private AI server running Qwen3.8 Flash-Next — no cloud, no subscription, nothing leaves your machine.
+- **Eight AI sessions at once:** two "orchestrator" sessions that each hold roughly an entire book of context (252,000 tokens), plus six worker sessions for coding, testing, and reviewing — all running simultaneously.
+- **Measured, not marketing:** the sessions genuinely run in parallel. Ten-minute document loads finish seconds apart instead of one after another, and quick questions still answer in ~1 second even while the big loads are running.
+- **Fits the hardware:** peaks at 98 GB of the machine's 107.5 GB GPU memory cap, then automatically parks cold data on the SSD — running ~24 GB leaner at steady state than the worst-case math.
+- **You can re-run the proof:** every number came from the included test battery (`scripts/warm-8slot.py`), with raw results in `results/`. Nothing here is projected or vendor-claimed — run it on your own machine before trusting it on yours.
+
+## The technical detail
+
 **One oMLX 0.6.4 process, one Flash-Next (125B-A6B MoE) checkpoint, eight concurrent
 context slots: 2 orchestrators at 252K + 2 TDD at 32K + 2 coders at 64K + 2 auditors
 at 64K. True concurrency is measured, not assumed: simultaneous long prefills finish

@@ -1,0 +1,162 @@
+{
+ "started": "2026-08-31T17:28:03+0800",
+ "phases": {
+  "H1_27b_4x118k_fill": {
+   "wall_s": 1284.42,
+   "streams": {
+    "tick-1": {
+     "ttft_s": 0.007,
+     "wall_s": 4.77,
+     "prompt_tokens": 63,
+     "completion_tokens": 16,
+     "decode_tps": 3.36,
+     "error": null
+    },
+    "tick-2": {
+     "ttft_s": 0.008,
+     "wall_s": 3.88,
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "decode_tps": null,
+     "error": null
+    },
+    "tick-3": {
+     "ttft_s": 0.003,
+     "wall_s": 79.12,
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "decode_tps": null,
+     "error": null
+    },
+    "27b-2": {
+     "ttft_s": 0.852,
+     "wall_s": 1171.09,
+     "prompt_tokens": 112599,
+     "completion_tokens": 8,
+     "decode_tps": 0.01,
+     "error": null
+    },
+    "27b-1": {
+     "ttft_s": 0.853,
+     "wall_s": 1269.05,
+     "prompt_tokens": 112599,
+     "completion_tokens": 8,
+     "decode_tps": 0.01,
+     "error": null
+    },
+    "27b-3": {
+     "ttft_s": 0.851,
+     "wall_s": 1269.41,
+     "prompt_tokens": 112599,
+     "completion_tokens": 8,
+     "decode_tps": 0.01,
+     "error": null
+    },
+    "27b-0": {
+     "ttft_s": 0.854,
+     "wall_s": 1284.42,
+     "prompt_tokens": 112599,
+     "completion_tokens": 8,
+     "decode_tps": 0.01,
+     "error": null
+    }
+   },
+   "decode_tps_list": [
+    0.01,
+    0.01,
+    0.01,
+    0.01
+   ],
+   "decode_tps_agg": 0.0,
+   "wall_spread_s": 113.33,
+   "tick_walls_s": [
+    4.77,
+    3.88,
+    79.12
+   ],
+   "tick_median_s": 4.77,
+   "footprints": {
+    ":8000": {
+     "current": "69",
+     "peak": "102"
+    },
+    ":8001": {
+     "current": "25",
+     "peak": "79"
+    }
+   },
+   "memory_pressure_pct_free": "e of 16384)."
+  },
+  "H2_flash_2x252k_fill": {
+   "wall_s": 691.95,
+   "streams": {
+    "tick-1": {
+     "ttft_s": 0.039,
+     "wall_s": 0.92,
+     "prompt_tokens": 63,
+     "completion_tokens": 16,
+     "decode_tps": 18.13,
+     "error": null
+    },
+    "tick-2": {
+     "ttft_s": 0.003,
+     "wall_s": 2.2,
+     "prompt_tokens": 63,
+     "completion_tokens": 16,
+     "decode_tps": 7.27,
+     "error": null
+    },
+    "tick-3": {
+     "ttft_s": 0.005,
+     "wall_s": 2.26,
+     "prompt_tokens": 63,
+     "completion_tokens": 16,
+     "decode_tps": 7.11,
+     "error": null
+    },
+    "flash-B": {
+     "ttft_s": 2.215,
+     "wall_s": 688.09,
+     "prompt_tokens": 240381,
+     "completion_tokens": 8,
+     "decode_tps": 0.01,
+     "error": null
+    },
+    "flash-A": {
+     "ttft_s": 2.224,
+     "wall_s": 691.94,
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "decode_tps": null,
+     "error": null
+    }
+   },
+   "decode_tps_list": [
+    0.01
+   ],
+   "decode_tps_agg": 0.0,
+   "wall_spread_s": 3.85,
+   "tick_walls_s": [
+    0.92,
+    2.2,
+    2.26
+   ],
+   "tick_median_s": 2.2,
+   "footprints": {
+    ":8000": {
+     "current": "87",
+     "peak": "102"
+    },
+    ":8001": {
+     "current": "18",
+     "peak": "79"
+    }
+   },
+   "memory_pressure_pct_free": "e of 16384)."
+  }
+ },
+ "errors": [],
+ "notes": [
+  "P4 combined: oMLX flash :8000 (2x252K) + oMLX 27B :8001 (4x118K), chunked on, MTP off"
+ ]
+}

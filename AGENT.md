@@ -1,39 +1,42 @@
-# AGENT.md — instructions for an AI agent setting this up
+# AGENT.md — for AI agents performing this install
 
-You are an AI agent on the operator's machine. The operator wants the dual-server
-Qwen3.8 stack from this recipe running and verified. Do it end to end without
-asking questions you can answer by inspecting the machine.
+You are installing an 8-slot oMLX serving stack on a 128 GB Apple Silicon Mac.
+Read this top to bottom before touching anything.
 
-## Goal
+1. **Trust only measured state.** After every config change, re-verify: `/v1/models`
+   advertised `max_model_len`, the boot log's enforcer line, `footprint <pid>` for
+   memory. Per-model settings are not always honored (a `max_context_window` cap can
+   silently fail to apply); the advertised value is ground truth.
 
-Two mlx-serve processes resident on one 128 GB Apple Silicon Mac:
-- Flash (Qwen3.8-Flash-Next, 256K ctx, MTP) on port 10099
-- 27B (Qwen3.8-27B dense, 128K ctx) on port 10012
+2. **The concurrency verdict standard is wall equality.** "The server didn't crash"
+   is not true concurrency. Fire N long fills simultaneously, record per-stream
+   walls, and require small spread (≤ ~5 s per equal-size pair). `scripts/warm-8slot.py`
+   implements this and writes a JSON receipt. Never report a pass without the receipt.
 
-Verified = boot logs show `Hot prefix cache: ENABLED` on BOTH servers, one live
-full-speed generation per port, and `footprint` of each process inside the
-README memory table.
+3. **Salt every repeated prompt.** Append a unique `[variant <tag>]` to fillers.
+   oMLX's prefix cache turns identical repeats into cache hits and collapses your
+   wall-times (12.1 s → 3.4 s measured on an 11K filler). Unsalted repeat
+   measurements are contaminated — discard them.
 
-## Steps
+4. **Memory: use `/usr/bin/footprint <pid>`.** RSS reads ~21 GB while the real
+   footprint is ~69 GB (mmap'd weights, pooled buffers). Budget against the 107.5 GB
+   Metal working-set cap — `sysctl iogpu.wired_limit_mb` unset means Apple's default
+   cap is active; host RAM and swap are red herrings.
 
-1. Run `bash setup.sh`. It fail-closes on: non-arm64, <128 GB, missing binary,
-   missing model dirs. Fix what it names (MODELS.md has the sources).
-2. Boot order is a HARD RULE: **27B first**, then flash. NEVER start both cold
-   at the same time — measured 3/3 memory-pressure kills of the flash process.
-3. After each boot, read the server log and require the exact line
-   `Hot prefix cache: ENABLED (capacity=N, mem-cap=X MB)`.
-   If it says `disabled`, the stride flags did not take — stop and fix.
-4. Verify per README "Verify" section: footprint values, one generation per port,
-   ports clean (`lsof -nP -iTCP:<port> -sTCP:LISTEN`) before any relaunch.
-5. Report: both ports, both cache lines, both footprints, both decode speeds.
+5. **Boot-warm both 252K orchestrators together; never cold-fill both once the fleet
+   is resident.** From empty, the dual fill peaks at 98 GB — safe. On top of a
+   resident stack, two fill transients can cross the cap and trigger SSD evictions
+   of hot slots. Stagger big refills; the SSD tier re-promotes a warm prefix in ~9 s.
 
-## Hard rules
+6. **Process management:** `omlx serve` spawns a child server; killing the wrapper
+   does nothing. Stop via port: `kill -TERM $(lsof -tnP -iTCP:8000 -sTCP:LISTEN)`.
+   Check the port is free before any relaunch — on conflict the NEW instance dies
+   and the OLD one keeps serving with whatever flags it was started with.
 
-- Never claim DONE without reading the boot logs and footprint values back.
-- Never "fix" a memory kill by raising any wired-limit; reduce slots/entries.
-- Never swap these flags for defaults: `--mtp` (flash), `--timeout 0`,
-  `--ssm-checkpoint-stride 256 --ssm-checkpoint-max 4`,
-  `--prefix-cache-mem 28GB` (flash) / `12GB` (27B). Each one earns its place in
-  the README.
-- If a scenario in the README cannot be reproduced on this machine, report the
-  mismatch honestly. Do not extrapolate README numbers to new hardware.
+7. **Do not enable MTP** (`mtp_enabled: true`) without re-benchmarking: measured
+   60.9 tok/s solo with it on vs ~86 off on this checkpoint. It is off in every
+   config file in this repo on purpose.
+
+8. **Fail closed.** If `scripts/verify.sh` reports a miss, stop and fix — do not
+   declare success with degraded settings. A stack serving 131072-ctx instead of
+   262144 will pass casual checks and fail real workloads hours later.

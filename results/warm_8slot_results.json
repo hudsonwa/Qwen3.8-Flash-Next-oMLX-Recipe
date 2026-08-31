@@ -1,0 +1,125 @@
+{
+ "started": "2026-08-31T23:26:15+0800",
+ "salt": "232615",
+ "phases": {
+  "W1_2x252k_boot_warm": {
+   "wall_s": 488.35,
+   "streams": {
+    "tick-1": {
+     "ttft_s": 0.006,
+     "wall_s": 11.26,
+     "prompt_tokens": 63,
+     "completion_tokens": 16,
+     "error": null
+    },
+    "orch-A": {
+     "ttft_s": 1.332,
+     "wall_s": 483.62,
+     "prompt_tokens": 240393,
+     "completion_tokens": 8,
+     "error": null
+    },
+    "orch-B": {
+     "ttft_s": 1.33,
+     "wall_s": 488.35,
+     "prompt_tokens": 240393,
+     "completion_tokens": 8,
+     "error": null
+    },
+    "tick-2": {
+     "ttft_s": 0.008,
+     "wall_s": 1.12,
+     "prompt_tokens": 63,
+     "completion_tokens": 16,
+     "error": null
+    }
+   },
+   "fill_walls_s": [
+    483.62,
+    488.35
+   ],
+   "fill_wall_spread_s": 4.73,
+   "tick_walls_s": [
+    11.26,
+    1.12
+   ],
+   "tick_median_s": 6.19,
+   "footprint": {
+    "current": "69",
+    "peak": "98"
+   },
+   "df_free_gb": 325
+  },
+  "W2_6workers_on_hot_orch": {
+   "wall_s": 300.24,
+   "streams": {
+    "tdd-2": {
+     "ttft_s": 0.052,
+     "wall_s": 142.03,
+     "prompt_tokens": 30585,
+     "completion_tokens": 8,
+     "error": null
+    },
+    "tdd-1": {
+     "ttft_s": 0.125,
+     "wall_s": 150.91,
+     "prompt_tokens": 30585,
+     "completion_tokens": 8,
+     "error": null
+    },
+    "coder-1": {
+     "ttft_s": 0.349,
+     "wall_s": 278.57,
+     "prompt_tokens": 61089,
+     "completion_tokens": 8,
+     "error": null
+    },
+    "coder-2": {
+     "ttft_s": 0.348,
+     "wall_s": 281.1,
+     "prompt_tokens": 61089,
+     "completion_tokens": 8,
+     "error": null
+    },
+    "audit-1": {
+     "ttft_s": 0.659,
+     "wall_s": 300.03,
+     "prompt_tokens": 61089,
+     "completion_tokens": 8,
+     "error": null
+    },
+    "audit-2": {
+     "ttft_s": 0.658,
+     "wall_s": 300.24,
+     "prompt_tokens": 61089,
+     "completion_tokens": 8,
+     "error": null
+    }
+   },
+   "fill_walls_s": [
+    142.03,
+    150.91,
+    278.57,
+    281.1,
+    300.03,
+    300.24
+   ],
+   "fill_wall_spread_s": 158.21,
+   "footprint": {
+    "current": "73",
+    "peak": "98"
+   },
+   "df_free_gb": 323
+  }
+ },
+ "errors": [],
+ "notes": [
+  "8-slot all-flash: 2x252K + 2x32K + 2x64K + 2x64K, oMLX 0.6.4 chunked on, MTP off"
+ ],
+ "finished": "2026-08-31T23:41:17+0800",
+ "final_footprint": {
+  "current": "73",
+  "peak": "98"
+ },
+ "final_df_free_gb": 324
+}

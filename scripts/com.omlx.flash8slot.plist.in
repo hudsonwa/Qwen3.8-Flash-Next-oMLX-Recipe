@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Rendered by setup.sh. Load: launchctl bootstrap gui/$(id -u) <this file>
+     Unload: launchctl bootout gui/$(id -u)/com.omlx.flash8slot -->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.omlx.flash8slot</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>@OMLX@</string>
+        <string>serve</string>
+        <string>--model-dir</string>
+        <string>@MODELDIR@</string>
+        <string>--host</string>
+        <string>127.0.0.1</string>
+        <string>--port</string>
+        <string>@PORT@</string>
+        <string>--max-concurrent-requests</string>
+        <string>8</string>
+        <string>--paged-ssd-cache-dir</string>
+        <string>@HOME@/.omlx/ssd-cache</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+    <key>ProcessType</key>
+    <string>Adaptive</string>
+    <key>StandardOutPath</key>
+    <string>@HOME@/.omlx/logs/launchd-flash.log</string>
+    <key>StandardErrorPath</key>
+    <string>@HOME@/.omlx/logs/launchd-flash.log</string>
+</dict>
+</plist>

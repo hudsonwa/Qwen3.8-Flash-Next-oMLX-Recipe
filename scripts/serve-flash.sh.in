@@ -1,20 +1,7 @@
 #!/usr/bin/env bash
-# Flash server launcher (rendered by setup.sh — do not edit directly)
-# @MODEL@ on :10099, 256K ctx, MTP on, hot prefix cache on.
-set -u
-BIN="@BIN@"
-MODEL="@MODEL@"
-KEY="@KEY@"
-PORT=10099
-LOG="${LOG:-/tmp/qwen38-stack/flash.log}"
-mkdir -p "$(dirname "$LOG")"
-
-lsof -tnP -iTCP:$PORT -sTCP:LISTEN 2>/dev/null | xargs kill 2>/dev/null
-sleep 2
-
-nohup "$BIN" --model "$MODEL" --serve --host 127.0.0.1 --port $PORT \
-  --ctx-size 262144 --mtp --timeout 0 \
-  --ssm-checkpoint-stride 256 --ssm-checkpoint-max 4 \
-  --prefix-cache-mem 28GB --api-key "$KEY" >> "$LOG" 2>&1 &
-
-echo "flash launcher: pid $! → $LOG (expect 'Hot prefix cache: ENABLED')"
+# Foreground launch of the oMLX flash 8-slot server (rendered by setup.sh).
+# For boot persistence use the launchd plist instead — not both (port conflict
+# kills the newcomer while the old server keeps serving, see docs/TRAPS.md).
+exec @OMLX@ serve --model-dir @MODELDIR@ --host 127.0.0.1 --port @PORT@ \
+  --max-concurrent-requests 8 \
+  --paged-ssd-cache-dir @HOME@/.omlx/ssd-cache

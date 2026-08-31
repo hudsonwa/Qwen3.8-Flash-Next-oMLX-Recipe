@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# One-shot setup: dual mlx-serve stack (Qwen3.8-Flash-Next 256K + Qwen3.8-27B 128K)
-# on a 128 GB Apple Silicon MBP. Detects machine, checks prerequisites, writes
-# launcher config, verifies model dirs. Does NOT auto-start servers (see scripts/).
+# One-shot setup: oMLX 8-slot Flash-Next stack (2x252K + 2x32K + 2x64K + 2x64K)
+# on a 128 GB Apple Silicon Mac. Checks prerequisites, patches oMLX config for
+# chunked prefill + memory guard, renders launchers and a launchd plist.
+# Does NOT auto-start the server (see scripts/serve-flash.sh or the plist).
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -17,32 +18,107 @@ if [ "$MEM_GB" -lt 128 ]; then
 fi
 
 # ---- configurable locations (override via env) -----------------------------
-MLX_SERVE_BIN="${MLX_SERVE_BIN:-$HOME/.local/opt/mlx-serve-26.8.11-pre/mlx-serve-macos-arm64/mlx-serve}"
-MODEL_FLASH="${MODEL_FLASH:-$HOME/models/qwen38-flash-next-mlx-serve-4bit}"
-MODEL_27B="${MODEL_27B:-$HOME/models/mlx-Qwen3.8-27B-4bit}"
-API_KEY="${API_KEY:-change-me}"
+OMLX_BIN="${OMLX_BIN:-$HOME/.omlx/bin/omlx}"
+MODEL_SRC="${MODEL_SRC:-$HOME/models/qwen38-flash-next-oq4e-mtp}"
+MODEL_DIR="${MODEL_DIR:-$HOME/models/omlx-qwen38}"   # one-symlink quarantine dir
+PORT="${PORT:-8000}"
 
 # ---- checks ----------------------------------------------------------------
 fail=0
-if [ ! -x "$MLX_SERVE_BIN" ]; then
-  echo "MISSING: mlx-serve binary at $MLX_SERVE_BIN (see MODELS.md section 1)"; fail=1
+if [ ! -x "$OMLX_BIN" ]; then
+  echo "MISSING: oMLX CLI shim at $OMLX_BIN (see MODELS.md section 1)"; fail=1
+else
+  echo "==> oMLX version: $("$OMLX_BIN" --version 2>/dev/null || echo unknown)"
 fi
-for d in "$MODEL_FLASH" "$MODEL_27B"; do
-  if [ ! -d "$d" ]; then
-    echo "MISSING: model dir $d (see MODELS.md section 2)"; fail=1
-  fi
-done
+if [ ! -d "$MODEL_SRC" ]; then
+  echo "MISSING: model dir $MODEL_SRC (see MODELS.md section 2)"; fail=1
+fi
 [ "$fail" = "1" ] && exit 1
 
-# ---- write launchers -------------------------------------------------------
-for side in flash 27b; do
-  sed -e "s|@BIN@|$MLX_SERVE_BIN|g" \
-      -e "s|@MODEL@|$( [ "$side" = flash ] && echo "$MODEL_FLASH" || echo "$MODEL_27B" )|g" \
-      -e "s|@KEY@|$API_KEY|g" \
-      "scripts/serve-$side.sh.in" > "scripts/serve-$side.sh"
-  chmod +x "scripts/serve-$side.sh"
-done
+mkdir -p "$MODEL_DIR"
+ln -sfn "$MODEL_SRC" "$MODEL_DIR/$(basename "$MODEL_SRC")"
+echo "==> quarantine dir ready: $MODEL_DIR -> $(basename "$MODEL_SRC")"
 
-echo "PASS: prerequisites OK, launchers written (scripts/serve-flash.sh, scripts/serve-27b.sh)"
-echo "Next: bash scripts/serve-27b.sh first, wait for 'Hot prefix cache: ENABLED',"
-echo "      then bash scripts/serve-flash.sh — boot order matters (see README)."
+# ---- oMLX config: chunked prefill + memory guard (THE lever) ---------------
+mkdir -p "$HOME/.omlx/logs" "$HOME/.omlx/ssd-cache"
+python3 - "$HOME/.omlx/settings.json" <<'PYEOF'
+import json, sys
+path = sys.argv[1]
+try:
+    with open(path) as f:
+        cfg = json.load(f)
+except FileNotFoundError:
+    print(f"NOTE: {path} not found — start the server once, stop it, re-run setup.sh,"
+          " then this script will patch the generated config.")
+    sys.exit(0)
+changed = []
+sch = cfg.setdefault("scheduler", {})
+if not sch.get("chunked_prefill"):
+    sch["chunked_prefill"] = True; changed.append("scheduler.chunked_prefill=true")
+sch.setdefault("prefill_priority", "context")
+sch.setdefault("decode_fairness", True)
+if sch.get("max_concurrent_requests") != 8:
+    sch["max_concurrent_requests"] = 8; changed.append("scheduler.max_concurrent_requests=8")
+mem = cfg.setdefault("memory", {})
+mem.setdefault("prefill_memory_guard", True)
+mem.setdefault("memory_guard_tier", "balanced")
+mem.setdefault("soft_threshold", 0.85)
+mem.setdefault("hard_threshold", 0.95)
+if changed:
+    with open(path, "w") as f:
+        json.dump(cfg, f, indent=2)
+    print("PATCHED settings.json:", ", ".join(changed))
+else:
+    print("settings.json already correct (chunked_prefill on, mc=8)")
+PYEOF
+
+python3 - "$HOME/.omlx/model_settings.json" <<'PYEOF'
+import json, sys
+path = sys.argv[1]
+try:
+    with open(path) as f:
+        cfg = json.load(f)
+except FileNotFoundError:
+    print(f"NOTE: {path} not found — start the server once, stop it, re-run setup.sh.")
+    sys.exit(0)
+models = cfg.setdefault("models", {})
+# find the flash-next entry (name may vary by checkpoint dir)
+for name, m in models.items():
+    if "flash" in name.lower():
+        if m.get("mtp_enabled") is not False:
+            m["mtp_enabled"] = False
+            print(f"PATCHED {name}: mtp_enabled=false (measured slower on)")
+        m.setdefault("max_context_window", 262144)
+        m.setdefault("qwen4_ple_ssd_offload", True)
+        print(f"model entry {name}: mtp off, ctx 262144, PLE ssd offload — OK")
+        break
+else:
+    print("NOTE: no flash-next model entry found yet — server writes one on first start.")
+with open(path, "w") as f:
+    json.dump(cfg, f, indent=2)
+PYEOF
+
+# ---- render launchers + launchd plist --------------------------------------
+for f in scripts/serve-flash.sh.in scripts/com.omlx.flash8slot.plist.in; do
+  [ -f "$f" ] || { echo "MISSING: $f"; exit 1; }
+done
+sed -e "s|@OMLX@|$OMLX_BIN|g" \
+    -e "s|@MODELDIR@|$MODEL_DIR|g" \
+    -e "s|@HOME@|$HOME|g" \
+    -e "s|@PORT@|$PORT|g" \
+    scripts/serve-flash.sh.in > scripts/serve-flash.sh
+chmod +x scripts/serve-flash.sh
+sed -e "s|@OMLX@|$OMLX_BIN|g" \
+    -e "s|@MODELDIR@|$MODEL_DIR|g" \
+    -e "s|@HOME@|$HOME|g" \
+    -e "s|@PORT@|$PORT|g" \
+    scripts/com.omlx.flash8slot.plist.in > "$HOME/Library/LaunchAgents/com.omlx.flash8slot.plist"
+
+echo "PASS: prerequisites OK, config patched, launchers written."
+echo "Next steps:"
+echo "  manual start :  bash scripts/serve-flash.sh    (foreground)"
+echo "  boot start   :  launchctl bootstrap gui/\$(id -u) ~/Library/LaunchAgents/com.omlx.flash8slot.plist"
+echo "                  (RunAtLoad + KeepAlive — starts now and at every login;"
+echo "                   do NOT also run serve-flash.sh, the port conflict kills the newcomer)"
+echo "  verify       :  bash scripts/verify.sh"
+echo "  acceptance   :  python3 scripts/warm-8slot.py   (~13 min; doubles as boot-warm)"

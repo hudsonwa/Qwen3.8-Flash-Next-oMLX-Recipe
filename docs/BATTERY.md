@@ -1,38 +1,57 @@
-# BATTERY.md — how the numbers were measured
+# BATTERY — how the verdicts were earned
 
-## Reference machine
-128 GB unified Apple Silicon (M5 Max-class), macOS 26, mlx-serve 26.8.11-pre,
-4-bit MLX checkpoints of Qwen3.8-Flash-Next (125B-A6B) and Qwen3.8-27B.
+## The standard: wall equality, not "it didn't crash"
 
-## Discipline
+A concurrency claim is only earned by firing N long fills **simultaneously**, recording
+per-stream walls, and requiring small spread between equal-size streams
+(`scripts/warm-8slot.py` implements this and writes a JSON receipt):
 
-- **Capacity** = `footprint <pid>` phys_footprint. `ps` RSS is not used anywhere
-  (mmap + buffer pool make it flat while real memory moves; see TRAPS #7).
-- **KV/slot** = measured by prefilling a known token count and diffing
-  footprint — never derived from config math (TRAPS #8).
-- **Token counts** calibrated with `llama-tokenize --show-count` across arms
-  (±0.5%); prompts salted per variant to block cross-stream cache hits.
-- **Degraded runs are reported, not retried into submission.** A Metal-OOM
-  scenario is isolated (per-scenario server guard + auto-relaunch) and the
-  failure is the finding.
-- **Claims gates**: any "cache enabled / MTP active / aborted" property is
-  asserted from server telemetry in the captured JSON — never inferred from a
-  completion.
+- spread ≤ ~5 s per equal-size pair → true concurrency
+- walls forming a staircase → FIFO (serial prefill), no matter how stable the server
 
-## The 2×4 shape battery (raw JSON in results/)
+Cross-size spreads are expected (64K slots take roughly twice as long as 32K slots);
+judge same-size pairs, plus TTFT (all streams should start ~instantly under chunked
+prefill) and mid-fill tick latency (a short request poked in during the fill).
 
-- `shape2x4_results.json` — the full battery: cold-fill kill matrix (3/3 flash
-  kills on simultaneous cold-fill; 90 s stagger still kills the 27B side),
-  second-flash-instance demand (161 GB), FIFO/tick-latency scenarios, and the
-  invalid first pass kept for the record.
-- `shape2x4_finalcell.json` — the passing final cell: 27B hot first, flash
-  fills 2×252K while ticks fire at 120 s/420 s (0.85–1.9 s tick latency),
-  post-fill footprints, and the 27B hot-resume timing after the stride-256 fix.
+## Measured history on the reference machine (128 GB M5 Max)
 
-## Reproducing
+| Test | oMLX 0.6.4, chunked ON | chunked OFF | mlx-serve 26.8.11-pre |
+|---|---|---|---|
+| 4×118K simultaneous fills (27B dense) | spread **25.6 s** | spread 939 s | spread ~843 s (FIFO) |
+| 2×252K simultaneous fills (flash) | spread **2.8–4.7 s**, ~985–1050 tok/s agg | — | 2 serial 520 s prefills, spread 563 s |
+| Planner tick during a 252K fill | **1.1–11.3 s** | — | **553 s** (FIFO wait) |
+| Solo 252K fill | 228.7 s (~1,050 tok/s) | — | 613 s |
+| 8-slot mixed (2×252K + 2×32K + 2×64K + 2×64K) | pair spreads ≤ 8.9 s, ~1,017 tok/s agg over 6 fills | — | — |
 
-1. Boot per README (order matters), run `scripts/verify.sh` to PASS.
-2. Run your own probes against `:10099`/`:10012` with salted prompts; capture
-   server-side telemetry lines in your results JSON.
-3. Publish your hardware row with the same fields (footprints, tick latency,
-   kill/no-kill, hot-resume seconds) — additions welcome via PR.
+(`llama.cpp` was also evaluated for this role: no true long-prefill concurrency.
+That's why the engine here is oMLX with chunking on.)
+
+## Footprint ledger (phys_footprint, GB)
+
+| State | Measured |
+|---|---|
+| Flash weights, idle | ~69 |
+| Dual 252K cold-fill peak | 98 (enforcer cycles soft 96.8, never hard 102.1) |
+| Steady, all 8 slots resident | 73 (orchestrator KV auto-tiered to SSD) |
+| Static worst case (nothing tiered) | ~97–99 |
+| Slot cache rate | ~9.25 GB / 252K slot; ~1.2 GB / 32K; ~2.3 GB / 64K |
+
+## SSD tier receipts
+
+- Warm 252K prefix re-promoted from SSD: **8.7 s** vs 229.8 s full re-prefill on LRU miss.
+- `auto` max size resolved to a self-managed 185.8 GB LRU cap; eviction is native.
+
+## Raw receipts
+
+`results/warm_8slot_results.json` — the 8-slot acceptance battery (W1 dual 252K
+boot-warm + ticks, W2 six workers over hot orchestrators, footprints per phase).
+`results/omlx_flash_2way_results.json`, `results/omlx27_4way_results.json`,
+`results/p4_combined_results.json` — the earlier engine-selection batteries.
+
+## Method notes
+
+- Memory: `/usr/bin/footprint <pid>` only.
+- Throughput: server log completion lines, not client-side stream timing.
+- Prompt sizing: repeated filler paragraph (~65 tok/rep) + unique `[variant]` salt.
+- Battery runs from a cold, single-instance state; every phase writes its JSON before
+  the next starts, so a crash still banks the completed phases.

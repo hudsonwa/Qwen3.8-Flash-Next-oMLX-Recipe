@@ -1,0 +1,113 @@
+{
+ "started": "2026-08-31T17:01:52+0800",
+ "phases": {
+  "G0_solo_252k_fill": {
+   "wall_s": 228.75,
+   "streams": {
+    "solo": {
+     "ttft_s": 0.432,
+     "wall_s": 228.74,
+     "prompt_tokens": 240381,
+     "completion_tokens": 8,
+     "error": null
+    }
+   },
+   "fill_walls_s": [
+    228.74
+   ],
+   "fill_wall_spread_s": 0.0,
+   "flash_footprint": {
+    "current": "88",
+    "peak": "88"
+   }
+  },
+  "G1_2x252k_simultaneous": {
+   "wall_s": 541.91,
+   "streams": {
+    "tick-1": {
+     "ttft_s": 0.006,
+     "wall_s": 24.91,
+     "prompt_tokens": 63,
+     "completion_tokens": 16,
+     "error": null
+    },
+    "flash-A": {
+     "ttft_s": 1.093,
+     "wall_s": 539.09,
+     "prompt_tokens": 240381,
+     "completion_tokens": 8,
+     "error": null
+    },
+    "flash-B": {
+     "ttft_s": 1.09,
+     "wall_s": 541.91,
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "error": null
+    },
+    "tick-2": {
+     "ttft_s": 0.011,
+     "wall_s": 1.34,
+     "prompt_tokens": 63,
+     "completion_tokens": 16,
+     "error": null
+    },
+    "tick-3": {
+     "ttft_s": 0.012,
+     "wall_s": 1.31,
+     "prompt_tokens": 63,
+     "completion_tokens": 16,
+     "error": null
+    }
+   },
+   "fill_walls_s": [
+    539.09,
+    541.91
+   ],
+   "fill_wall_spread_s": 2.82,
+   "tick_walls_s": [
+    24.91,
+    1.34,
+    1.31
+   ],
+   "tick_median_s": 1.34,
+   "flash_footprint": {
+    "current": "69",
+    "peak": "102"
+   }
+  },
+  "D2_hot_resume_2x252k": {
+   "wall_s": 229.81,
+   "streams": {
+    "flash-A": {
+     "ttft_s": 0.87,
+     "wall_s": 8.69,
+     "prompt_tokens": 240387,
+     "completion_tokens": 8,
+     "error": null
+    },
+    "flash-B": {
+     "ttft_s": 0.869,
+     "wall_s": 229.8,
+     "prompt_tokens": 240388,
+     "completion_tokens": 8,
+     "error": null
+    }
+   },
+   "fill_walls_s": [
+    8.69,
+    229.8
+   ],
+   "fill_wall_spread_s": 221.11,
+   "flash_footprint": {
+    "current": "88",
+    "peak": "102"
+   }
+  }
+ },
+ "errors": [],
+ "notes": [
+  "flash oQ4e-mtp on oMLX 0.6.4, ctx 262144, MTP off, chunked on"
+ ],
+ "finished": "2026-08-31T17:24:33+0800"
+}

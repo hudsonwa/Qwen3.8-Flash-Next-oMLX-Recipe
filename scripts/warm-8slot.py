@@ -1,0 +1,166 @@
+#!/usr/bin/env python3
+"""8-slot all-flash warm + acceptance battery — north-star final shape.
+
+Shape: 2x 252K orchestrators, 2x 32K TDD, 2x 64K coders, 2x 64K auditors.
+Server: oMLX 0.6.4 flash-next on :8000, chunked on, MTP off, enforcer 107.5GB.
+
+Phases:
+  W1  2x252K simultaneous cold fill (boot-warm; measured-safe from G1) + 2 ticks
+  W2  6 worker fills simultaneously (2x32K, 2x64K, 2x64K) on top of hot orchestrators
+  Footprint + df captured after each phase.
+
+Predicted steady footprint: ~96.9GB (69 weights + 28GB slots).
+"""
+import json, subprocess, time, threading, urllib.request, statistics
+
+BASE = "http://127.0.0.1:8000"
+MODEL = "qwen38-flash-next-oq4e-mtp"
+OUT = __import__("os").path.join(__import__("os").path.dirname(__import__("os").path.abspath(__file__)),
+                                 "..", "results", "warm_8slot_results.json")
+SALT = time.strftime("%H%M%S")
+
+UNIT = ("Linear attention layers process the sequence with constant memory per step, while full "
+        "attention layers attend to all previous tokens every fourth layer. Multi-token prediction "
+        "heads draft several tokens per verification cycle, and an adaptive controller adjusts draft "
+        "depth from rolling acceptance statistics. Prefix caching stores previously computed states "
+        "so repeated system prompts skip recomputation. ")
+
+R = {"started": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "salt": SALT, "phases": {}, "errors": [],
+     "notes": ["8-slot all-flash: 2x252K + 2x32K + 2x64K + 2x64K, oMLX 0.6.4 chunked on, MTP off"]}
+
+def save():
+    with open(OUT, "w") as f:
+        json.dump(R, f, indent=1)
+
+def footprint():
+    out = subprocess.run(["lsof", "-tnP", "-iTCP:8000", "-sTCP:LISTEN"],
+                         capture_output=True, text=True).stdout.strip()
+    if not out:
+        return None
+    p = out.split()[0]
+    res = subprocess.run(["/usr/bin/footprint", p], capture_output=True, text=True, timeout=60).stdout
+    cur = peak = None
+    for line in res.splitlines():
+        if "phys_footprint_peak" in line:
+            peak = line.split()[1]
+        elif "phys_footprint:" in line:
+            cur = line.split()[1]
+    return {"current": cur, "peak": peak}
+
+def df_free_gb():
+    res = subprocess.run(["df", "-k", "/System/Volumes/Data"], capture_output=True, text=True).stdout
+    return int(res.strip().splitlines()[-1].split()[3]) // 1048576
+
+def mk_prompt(approx_tokens, salt, extra=""):
+    reps = max(1, approx_tokens // 65)
+    return (f"Read carefully. Reply with exactly: DONE-{salt}\n\n") + UNIT * reps + f"\n[variant {salt}]" + extra
+
+def one(tag, prompt, out, max_tokens=8, temp=0):
+    body = json.dumps({"model": MODEL, "messages": [{"role": "user", "content": prompt}],
+                       "max_tokens": max_tokens, "temperature": temp,
+                       "stream": True, "stream_options": {"include_usage": True}}).encode()
+    req = urllib.request.Request(f"{BASE}/v1/chat/completions", data=body,
+                                 headers={"Content-Type": "application/json"})
+    t0 = time.perf_counter()
+    first = usage = err = None
+    try:
+        with urllib.request.urlopen(req, timeout=7200) as r:
+            for raw in r:
+                line = raw.decode("utf-8", "replace").strip()
+                if not line.startswith("data:"):
+                    continue
+                p = line[5:].strip()
+                if p == "[DONE]":
+                    break
+                try:
+                    o = json.loads(p)
+                except Exception:
+                    continue
+                if o.get("usage"):
+                    usage = o["usage"]
+                if o.get("choices") and first is None:
+                    first = time.perf_counter() - t0
+    except Exception as e:
+        err = str(e)[:150]
+    wall = time.perf_counter() - t0
+    pt = usage.get("prompt_tokens", 0) if usage else 0
+    out[tag] = {"ttft_s": round(first, 3) if first else None, "wall_s": round(wall, 2),
+                "prompt_tokens": pt,
+                "completion_tokens": usage.get("completion_tokens", 0) if usage else 0,
+                "error": err}
+    if err:
+        R["errors"].append(f"{tag}: {err}")
+
+RESULTS = {}
+
+def run_group(name, jobs, tick_schedule=None):
+    RESULTS.clear()
+    threads = [threading.Thread(target=one, args=(t, p, RESULTS, mt)) for t, p, mt in jobs]
+    t0 = time.perf_counter()
+    for th in threads:
+        th.start()
+    tick_threads = []
+    if tick_schedule:
+        def fire(delay, label):
+            time.sleep(delay)
+            tr = {}
+            one(label, f"Planner tick {label}: reply READY only.", tr, 16)
+            RESULTS[label] = tr.get(label)
+        for delay, label in tick_schedule:
+            th = threading.Thread(target=fire, args=(delay, label))
+            th.start()
+            tick_threads.append(th)
+    for th in threads:
+        th.join()
+    wall = round(time.perf_counter() - t0, 2)
+    for th in tick_threads:
+        th.join(timeout=1800)
+    fills = [v for k, v in RESULTS.items() if not k.startswith("tick-")]
+    ticks = [v for k, v in RESULTS.items() if k.startswith("tick-")]
+    rec = {"wall_s": wall, "streams": dict(RESULTS)}
+    if fills:
+        walls = [f["wall_s"] for f in fills if f.get("wall_s")]
+        rec["fill_walls_s"] = sorted(walls)
+        rec["fill_wall_spread_s"] = round(max(walls) - min(walls), 2) if walls else None
+    if any(t for t in ticks):
+        tw = [t["wall_s"] for t in ticks if t and t.get("wall_s")]
+        rec["tick_walls_s"] = tw
+        rec["tick_median_s"] = round(statistics.median(tw), 2) if tw else None
+    rec["footprint"] = footprint()
+    rec["df_free_gb"] = df_free_gb()
+    R["phases"][name] = rec
+    save()
+    print(f"[warm8] {name} wall={wall}s spread={rec.get('fill_wall_spread_s')}s "
+          f"footprint={rec['footprint']}", flush=True)
+
+def phase_w1():
+    jobs = [("orch-A", mk_prompt(252000, f"wA{SALT}"), 8),
+            ("orch-B", mk_prompt(252000, f"wB{SALT}"), 8)]
+    run_group("W1_2x252k_boot_warm", jobs, tick_schedule=[(240, "tick-1"), (600, "tick-2")])
+
+def phase_w2():
+    jobs = [("tdd-1", mk_prompt(32000, f"t1{SALT}"), 8),
+            ("tdd-2", mk_prompt(32000, f"t2{SALT}"), 8),
+            ("coder-1", mk_prompt(64000, f"c1{SALT}"), 8),
+            ("coder-2", mk_prompt(64000, f"c2{SALT}"), 8),
+            ("audit-1", mk_prompt(64000, f"a1{SALT}"), 8),
+            ("audit-2", mk_prompt(64000, f"a2{SALT}"), 8)]
+    run_group("W2_6workers_on_hot_orch", jobs)
+
+def guard(name, fn):
+    print(f"[warm8] {name} ...", flush=True)
+    try:
+        fn()
+    except Exception as e:
+        R["errors"].append(f"{name}: GUARD-CAUGHT {str(e)[:200]}")
+        print(f"[warm8] {name} EXCEPTION: {e}", flush=True)
+        save()
+
+for ph in [a for a in __import__("sys").argv[1:]] or ["W1", "W2"]:
+    guard(ph, {"W1": phase_w1, "W2": phase_w2}[ph])
+
+R["finished"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+R["final_footprint"] = footprint()
+R["final_df_free_gb"] = df_free_gb()
+save()
+print("WROTE", OUT, "| errors:", R["errors"] if R["errors"] else "none", flush=True)

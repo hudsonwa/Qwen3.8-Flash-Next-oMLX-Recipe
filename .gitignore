@@ -1,6 +1,4 @@
 # Local artifacts — never commit
 scripts/serve-flash.sh
-scripts/serve-27b.sh
 *.log
 .DS_Store
-results/*.local.json

@@ -6,6 +6,8 @@ cd "$(dirname "$0")/.."
 pats='joshua|hudsonwa|jhudson1980|mortimer|/Users/[a-z]+|\.hermes|exmachina'
 hits=0
 while IFS= read -r f; do
+  # skip this script: its pattern list contains the literals by design
+  [ "$f" = "scripts/check-scrub.sh" ] && continue
   m=$(grep -inE "$pats" -- "$f" 2>/dev/null | head -3)
   if [ -n "$m" ]; then
     echo "HIT: $f"; echo "$m"; hits=$((hits+1))

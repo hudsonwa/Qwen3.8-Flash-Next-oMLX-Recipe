@@ -94,6 +94,25 @@ def summarize(label: str, mode: str, recs: list[dict]) -> dict:
     }
 
 
+def machine_info() -> dict:
+    """Provenance stamp: every number in results/ is M5 Max / macOS 26 /
+    2026-08-31 (the README Machine contract) unless re-run, so a re-run's
+    receipt must name the machine, OS and date it was actually measured on."""
+    import platform
+    import subprocess
+    out: dict = {"measured_at": time.strftime("%Y-%m-%dT%H:%M:%S%z")}
+    for cmd, key in ((["sysctl", "-n", "hw.model"], "hw_model"),
+                     (["sysctl", "-n", "machdep.cpu.brand_string"], "cpu"),
+                     (["sw_vers", "-productVersion"], "os_version")):
+        try:
+            out[key] = subprocess.run(cmd, capture_output=True, text=True,
+                                      timeout=5).stdout.strip()
+        except Exception:
+            out[key] = None
+    out["os"] = "%s %s" % (platform.system(), platform.release())
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", default="http://127.0.0.1:8000/v1")
@@ -116,6 +135,7 @@ def main() -> int:
         receipt = json.loads(out.read_text())
     else:
         receipt = {"recipe": "mtp on/off receipt", "model": model, "runs": {}}
+    receipt.setdefault("machine", machine_info())  # self-tag: which box/OS/date
     receipt["runs"][key] = entry
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(receipt, indent=2) + "\n")

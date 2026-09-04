@@ -77,6 +77,7 @@ def one(tag, prompt, out, max_tokens=8, temp=0):
                                  headers={"Content-Type": "application/json"})
     t0 = time.perf_counter()
     first = usage = err = None
+    text = []
     try:
         with urllib.request.urlopen(req, timeout=7200) as r:
             for raw in r:
@@ -92,18 +93,25 @@ def one(tag, prompt, out, max_tokens=8, temp=0):
                     continue
                 if o.get("usage"):
                     usage = o["usage"]
+                ch = (o.get("choices") or [None])[0] or {}
+                delta = (ch.get("delta") or {}).get("content") or ch.get("message", {}).get("content")
+                if delta:
+                    text.append(delta)
                 if o.get("choices") and first is None:
                     first = time.perf_counter() - t0
     except Exception as e:
         err = str(e)[:150]
     wall = time.perf_counter() - t0
     pt = usage.get("prompt_tokens", 0) if usage else 0
+    completion = "".join(text).strip()
     out[tag] = {"ttft_s": round(first, 3) if first else None, "wall_s": round(wall, 2),
                 "prompt_tokens": pt,
                 "completion_tokens": usage.get("completion_tokens", 0) if usage else 0,
+                "completion": completion[:200],
                 "error": err}
     if err:
         R["errors"].append(f"{tag}: {err}")
+    return completion
 
 RESULTS = {}
 
@@ -147,6 +155,75 @@ def run_group(name, jobs, tick_schedule=None):
     print(f"[warm8] {name} wall={wall}s spread={rec.get('fill_wall_spread_s')}s "
           f"footprint={rec['footprint']}", flush=True)
 
+def advertised_ctx():
+    try:
+        with urllib.request.urlopen(BASE + "/v1/models", timeout=5) as r:
+            data = json.load(r)
+        return max(int(m.get("max_model_len") or 0) for m in data.get("data") or [])
+    except Exception as e:
+        R["errors"].append("ctx: %s" % e)
+        return 0
+
+def _gb(x):
+    if x is None:
+        return None
+    s = str(x).strip().upper().replace(",", "")
+    try:
+        if s.endswith("GB"):
+            s = s[:-2]
+        elif s.endswith("G"):
+            s = s[:-1]
+        return float(s)
+    except ValueError:
+        return None
+
+def evaluate_gates():
+    """Fail-closed. Limits from 2026-08-31 receipts plus a small stated slack."""
+    fails = []
+    ctx = advertised_ctx()
+    R["advertised_ctx"] = ctx
+    if ctx < 262144:
+        fails.append("advertised ctx %s < 262144" % ctx)
+    if R.get("errors"):
+        fails.append("stream errors: %s" % R["errors"][:8])
+    token_band = {
+        "orch-": (240393, 0.03),
+        "tdd-": (30585, 0.03),
+        "coder-": (61089, 0.03),
+        "audit-": (61089, 0.03),
+    }
+    for phase, rec in (R.get("phases") or {}).items():
+        streams = rec.get("streams") or {}
+        groups = {}
+        for tag, st in streams.items():
+            if not st or tag.startswith("tick-"):
+                continue
+            if st.get("error"):
+                fails.append("%s/%s error" % (phase, tag))
+            text = (st.get("completion") or "")
+            # salt is embedded in the DONE- line of that stream's prompt via mk_prompt
+            if "DONE-" not in text:
+                fails.append("%s/%s completion %r missing DONE-{salt}" % (phase, tag, text[:80]))
+            pt = st.get("prompt_tokens") or 0
+            for prefix, (target, tol) in token_band.items():
+                if tag.startswith(prefix):
+                    lo, hi = target * (1 - tol), target * (1 + tol)
+                    if not (lo <= pt <= hi):
+                        fails.append("%s/%s prompt_tokens %s not in %.0f–%.0f (measured %s ±3%%)" %
+                                     (phase, tag, pt, lo, hi, target))
+                    groups.setdefault(prefix, []).append(st.get("wall_s") or 0)
+                    break
+        for prefix, walls in groups.items():
+            if len(walls) >= 2:
+                spread = max(walls) - min(walls)
+                if spread > 15:
+                    fails.append("%s %s same-size spread %.2fs > 15s" % (phase, prefix, spread))
+        peak = _gb((rec.get("footprint") or {}).get("peak"))
+        if peak is not None and peak > 102:
+            fails.append("%s peak footprint %s GB > 102 GB" % (phase, peak))
+    R["gate_fails"] = fails
+    return fails
+
 def phase_w1():
     jobs = [("orch-A", mk_prompt(252000, f"wA{SALT}"), 8),
             ("orch-B", mk_prompt(252000, f"wB{SALT}"), 8)]
@@ -170,11 +247,21 @@ def guard(name, fn):
         print(f"[warm8] {name} EXCEPTION: {e}", flush=True)
         save()
 
+if advertised_ctx() < 262144:
+    R["errors"].append("preflight advertised ctx < 262144")
+    save()
+    print("FAIL: advertised ctx < 262144 — not running the battery", flush=True)
+    raise SystemExit(1)
+
 for ph in [a for a in __import__("sys").argv[1:]] or ["W1", "W2"]:
     guard(ph, {"W1": phase_w1, "W2": phase_w2}[ph])
 
 R["finished"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
 R["final_footprint"] = footprint()
 R["final_df_free_gb"] = df_free_gb()
+fails = evaluate_gates()
 save()
-print("WROTE", OUT, "| errors:", R["errors"] if R["errors"] else "none", flush=True)
+print("WROTE", OUT, "| errors:", R["errors"] if R["errors"] else "none",
+      "| gate_fails:", fails if fails else "none", flush=True)
+if fails or R["errors"]:
+    raise SystemExit(1)

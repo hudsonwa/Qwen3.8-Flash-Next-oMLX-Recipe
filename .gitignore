@@ -2,3 +2,4 @@
 scripts/serve-flash.sh
 *.log
 .DS_Store
+__pycache__/

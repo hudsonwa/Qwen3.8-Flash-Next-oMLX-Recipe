@@ -13,9 +13,9 @@ stated). Not folklore.
    for a model; `/v1/models` advertised 262144 anyway. After every boot, verify the
    advertised value (`scripts/verify.sh` does). Trust the API, not the settings file.
 
-3. **MTP on this checkpoint is slower, not faster.** `mtp_enabled: true` measured
-   60.9 tok/s solo vs ~86 off. It stays off in every config here; re-benchmark on
-   your own build before flipping it.
+3. **MTP on this checkpoint, this box, is slower solo — not a general law.**
+   `mtp_enabled: true` measured 60.9 tok/s solo vs ~86 off. Unmeasured at 8-way
+   until `results/mtp_on_off.json` exists. It stays off in every config here.
 
 4. **Killing the `omlx serve` wrapper does not stop the server.** The wrapper spawns
    a child `omlx-server` that survives. Stop by port:
@@ -50,12 +50,14 @@ stated). Not folklore.
 11. **A 90 s stagger does NOT save a dual cold-fill from memory pressure** (measured
     on the previous engine; the physics is the same here). Two simultaneous ~10 GB
     fill transients on top of a resident stack can cross the cap. Boot-warm both
-    orchestrators from empty — that's safe (98 GB peak, 3/3 clean) — then never
+    orchestrators from empty — W1 98 GB / G1 102 GB (plan to 102) — then never
     cold-fill both while the fleet is resident.
 
 12. **The SSD cache grows to its cap by design — that's fine, disk is not the
     problem.** `ssd_cache_max_size: "auto"` resolved to a self-managed 185.8 GB LRU;
-    eviction is native. Don't hand-prune cache files while the server runs.
+    eviction is native. One D2 pair: 8.7 s hit vs ~229 s miss; two 252K prefixes
+    may not both stay cached. Keep ~100 GB free. Don't hand-prune cache files
+    while the server runs.
 
 13. **Model discovery follows symlinks in the model dir.** That's the feature the
     quarantine dir uses (`~/models/omlx-qwen38/<one-symlink>`), but it also means a

@@ -1,6 +1,9 @@
 # MODELS.md — pinned artifacts (do not search)
 
-Every number in this repo was measured against **these** bits. Newer
+Every number in this repo was measured against **these** bits, on the reference
+machine: dedicated 128 GB Apple Silicon (M5 Max, macOS 26), Metal working-set cap
+~107.5 GB, ~100 GB free on the SSD cache volume, no second GPU-heavy app running;
+receipts in `results/` are dated 2026-08-31 unless re-run. Newer
 builds need a new receipt in `results/` before you trust the tables.
 
 ## 1. Server runtime — oMLX 0.6.4

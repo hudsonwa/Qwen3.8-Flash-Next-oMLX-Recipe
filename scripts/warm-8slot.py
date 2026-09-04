@@ -151,6 +151,9 @@ def run_group(name, jobs, tick_schedule=None, followups=None):
     RESULTS.clear()
     threads = [threading.Thread(target=one, args=(t, p, RESULTS, mt)) for t, p, mt in jobs]
     t0 = time.perf_counter()
+    # Snapshot the cache counter before the follow-ups fire (they start after
+    # their delay, and the "before" value must not include their own hits).
+    resid_before = cached_tokens() if followups else None
     for th in threads:
         th.start()
     tick_threads = []
@@ -195,7 +198,7 @@ def run_group(name, jobs, tick_schedule=None, followups=None):
     if resid:
         rec["residency"] = {
             "followups": dict(resid),
-            "cached_tokens_before": cached_tokens(),
+            "cached_tokens_before": resid_before,
         }
     rec["footprint"] = footprint()
     rec["df_free_gb"] = df_free_gb()

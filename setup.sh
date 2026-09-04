@@ -1,10 +1,23 @@
 #!/usr/bin/env bash
 # One-shot setup: oMLX 8-slot Flash-Next stack (2x252K + 2x32K + 2x64K + 2x64K)
 # on a 128 GB Apple Silicon Mac. Checks prerequisites, patches oMLX config for
-# chunked prefill + memory guard, renders launchers and a launchd plist.
-# Does NOT auto-start the server (see scripts/serve-flash.sh or the plist).
+# chunked prefill + memory guard, renders the foreground launcher.
+# Does NOT auto-start the server. Does NOT write a LaunchAgent unless
+# --install-agent is passed (KeepAlive on a ~69 GB Metal process is opt-in).
 set -euo pipefail
 cd "$(dirname "$0")"
+
+INSTALL_AGENT=0
+for arg in "$@"; do
+  case "$arg" in
+    --install-agent) INSTALL_AGENT=1 ;;
+    -h|--help)
+      echo "usage: bash setup.sh [--install-agent]"
+      exit 0
+      ;;
+    *) echo "FAIL: unknown argument: $arg (only --install-agent is accepted)" >&2; exit 1 ;;
+  esac
+done
 
 OS="$(uname -s)"; ARCH="$(uname -m)"
 MEM_GB=$(( $(sysctl -n hw.memsize 2>/dev/null || echo 0) / 1024 / 1024 / 1024 ))
@@ -17,21 +30,46 @@ if [ "$MEM_GB" -lt 128 ]; then
   echo "FAIL: measured shape needs 128 GB unified memory (found ${MEM_GB})" >&2; exit 1
 fi
 
-# ---- configurable locations (override via env) -----------------------------
 OMLX_BIN="${OMLX_BIN:-$HOME/.omlx/bin/omlx}"
 MODEL_SRC="${MODEL_SRC:-$HOME/models/qwen38-flash-next-oq4e-mtp}"
-MODEL_DIR="${MODEL_DIR:-$HOME/models/omlx-qwen38}"   # one-symlink quarantine dir
+MODEL_DIR="${MODEL_DIR:-$HOME/models/omlx-qwen38}"
 PORT="${PORT:-8000}"
+OMLX_VERSION_PIN="${OMLX_VERSION_PIN:-0.6.4}"
+HF_REVISION_PIN="${HF_REVISION_PIN:-2615fc0e976e65c2f3b55daca3a948f1cdc5b9f8}"
 
-# ---- checks ----------------------------------------------------------------
 fail=0
 if [ ! -x "$OMLX_BIN" ]; then
   echo "MISSING: oMLX CLI shim at $OMLX_BIN (see MODELS.md section 1)"; fail=1
 else
-  echo "==> oMLX version: $("$OMLX_BIN" --version 2>/dev/null || echo unknown)"
+  raw_ver="$("$OMLX_BIN" --version 2>/dev/null || true)"
+  ver="$(printf '%s' "$raw_ver" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)"
+  echo "==> oMLX version: ${raw_ver:-unknown} (parsed ${ver:-none})"
+  if [ "$ver" != "$OMLX_VERSION_PIN" ]; then
+    echo "FAIL: oMLX version '$ver' != pin $OMLX_VERSION_PIN" >&2
+    fail=1
+  fi
 fi
 if [ ! -d "$MODEL_SRC" ]; then
   echo "MISSING: model dir $MODEL_SRC (see MODELS.md section 2)"; fail=1
+else
+  if [ ! -f "$MODEL_SRC/config.json" ]; then
+    echo "FAIL: $MODEL_SRC has no config.json — not a checkpoint dir" >&2
+    fail=1
+  fi
+  got=""
+  if [ -f "$MODEL_SRC/.hf_revision" ]; then
+    got="$(tr -d '[:space:]' < "$MODEL_SRC/.hf_revision")"
+  fi
+  if [ -z "$got" ]; then
+    echo "FAIL: $MODEL_SRC/.hf_revision missing. After a pinned download, run:" >&2
+    echo "      echo $HF_REVISION_PIN > $MODEL_SRC/.hf_revision" >&2
+    fail=1
+  elif [ "$got" != "$HF_REVISION_PIN" ]; then
+    echo "FAIL: model revision '$got' != pin $HF_REVISION_PIN" >&2
+    fail=1
+  else
+    echo "==> model revision $got (OK)"
+  fi
 fi
 [ "$fail" = "1" ] && exit 1
 
@@ -39,18 +77,24 @@ mkdir -p "$MODEL_DIR"
 ln -sfn "$MODEL_SRC" "$MODEL_DIR/$(basename "$MODEL_SRC")"
 echo "==> quarantine dir ready: $MODEL_DIR -> $(basename "$MODEL_SRC")"
 
-# ---- oMLX config: chunked prefill + memory guard (THE lever) ---------------
 mkdir -p "$HOME/.omlx/logs" "$HOME/.omlx/ssd-cache"
+
+# Missing configs are a FAIL. oMLX writes them on first start; stop the server
+# and re-run setup.sh. Never exit 0 on a half-install.
+if [ ! -f "$HOME/.omlx/settings.json" ]; then
+  echo "FAIL: $HOME/.omlx/settings.json missing — start the server once so oMLX writes it, stop it, re-run setup.sh" >&2
+  exit 1
+fi
+if [ ! -f "$HOME/.omlx/model_settings.json" ]; then
+  echo "FAIL: $HOME/.omlx/model_settings.json missing — start the server once so oMLX writes it, stop it, re-run setup.sh" >&2
+  exit 1
+fi
+
 python3 - "$HOME/.omlx/settings.json" <<'PYEOF'
 import json, sys
 path = sys.argv[1]
-try:
-    with open(path) as f:
-        cfg = json.load(f)
-except FileNotFoundError:
-    print(f"NOTE: {path} not found — start the server once, stop it, re-run setup.sh,"
-          " then this script will patch the generated config.")
-    sys.exit(0)
+with open(path) as f:
+    cfg = json.load(f)
 changed = []
 sch = cfg.setdefault("scheduler", {})
 if not sch.get("chunked_prefill"):
@@ -75,30 +119,27 @@ PYEOF
 python3 - "$HOME/.omlx/model_settings.json" <<'PYEOF'
 import json, sys
 path = sys.argv[1]
-try:
-    with open(path) as f:
-        cfg = json.load(f)
-except FileNotFoundError:
-    print(f"NOTE: {path} not found — start the server once, stop it, re-run setup.sh.")
-    sys.exit(0)
+with open(path) as f:
+    cfg = json.load(f)
 models = cfg.setdefault("models", {})
-# find the flash-next entry (name may vary by checkpoint dir)
+found = False
 for name, m in models.items():
     if "flash" in name.lower():
         if m.get("mtp_enabled") is not False:
             m["mtp_enabled"] = False
-            print(f"PATCHED {name}: mtp_enabled=false (measured slower on)")
+            print(f"PATCHED {name}: mtp_enabled=false (measured slower on this box)")
         m.setdefault("max_context_window", 262144)
         m.setdefault("qwen4_ple_ssd_offload", True)
         print(f"model entry {name}: mtp off, ctx 262144, PLE ssd offload — OK")
+        found = True
         break
-else:
-    print("NOTE: no flash-next model entry found yet — server writes one on first start.")
+if not found:
+    print("FAIL: no flash-next model entry in model_settings.json — start the server once so oMLX writes one, stop it, re-run setup.sh", file=sys.stderr)
+    sys.exit(1)
 with open(path, "w") as f:
     json.dump(cfg, f, indent=2)
 PYEOF
 
-# ---- render launchers + launchd plist --------------------------------------
 for f in scripts/serve-flash.sh.in scripts/com.omlx.flash8slot.plist.in; do
   [ -f "$f" ] || { echo "MISSING: $f"; exit 1; }
 done
@@ -108,17 +149,23 @@ sed -e "s|@OMLX@|$OMLX_BIN|g" \
     -e "s|@PORT@|$PORT|g" \
     scripts/serve-flash.sh.in > scripts/serve-flash.sh
 chmod +x scripts/serve-flash.sh
-sed -e "s|@OMLX@|$OMLX_BIN|g" \
-    -e "s|@MODELDIR@|$MODEL_DIR|g" \
-    -e "s|@HOME@|$HOME|g" \
-    -e "s|@PORT@|$PORT|g" \
-    scripts/com.omlx.flash8slot.plist.in > "$HOME/Library/LaunchAgents/com.omlx.flash8slot.plist"
 
-echo "PASS: prerequisites OK, config patched, launchers written."
+if [ "$INSTALL_AGENT" = "1" ]; then
+  mkdir -p "$HOME/Library/LaunchAgents"
+  sed -e "s|@OMLX@|$OMLX_BIN|g" \
+      -e "s|@MODELDIR@|$MODEL_DIR|g" \
+      -e "s|@HOME@|$HOME|g" \
+      -e "s|@PORT@|$PORT|g" \
+      scripts/com.omlx.flash8slot.plist.in > "$HOME/Library/LaunchAgents/com.omlx.flash8slot.plist"
+  echo "WROTE LaunchAgent (opt-in appliance mode: KeepAlive + 30s throttle on a ~69 GB Metal process)"
+  echo "  launchctl bootstrap gui/\$(id -u) ~/Library/LaunchAgents/com.omlx.flash8slot.plist"
+  echo "  launchctl bootout    gui/\$(id -u)/com.omlx.flash8slot"
+else
+  echo "NOTE: LaunchAgent not installed (pass --install-agent for KeepAlive appliance mode)."
+fi
+
+echo "PASS: prerequisites OK, config patched, scripts/serve-flash.sh written."
 echo "Next steps:"
 echo "  manual start :  bash scripts/serve-flash.sh    (foreground)"
-echo "  boot start   :  launchctl bootstrap gui/\$(id -u) ~/Library/LaunchAgents/com.omlx.flash8slot.plist"
-echo "                  (RunAtLoad + KeepAlive — starts now and at every login;"
-echo "                   do NOT also run serve-flash.sh, the port conflict kills the newcomer)"
 echo "  verify       :  bash scripts/verify.sh"
 echo "  acceptance   :  python3 scripts/warm-8slot.py   (~13 min; doubles as boot-warm)"

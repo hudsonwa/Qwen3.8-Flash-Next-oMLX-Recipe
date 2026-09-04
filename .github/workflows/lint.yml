@@ -22,7 +22,7 @@ jobs:
         run: python3 -c "import xml.etree.ElementTree as ET; ET.parse('scripts/com.omlx.flash8slot.plist.in'); print('plist XML OK')"
 
       - name: Python battery compiles
-        run: python3 -m py_compile scripts/warm-8slot.py && echo "py compile OK"
+        run: python3 -m py_compile scripts/warm-8slot.py scripts/resolve_model.py && echo "py compile OK"
 
       - name: Personal-pattern scrub guard
         run: bash scripts/check-scrub.sh

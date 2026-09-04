@@ -14,7 +14,21 @@ Predicted steady footprint: ~96.9GB (69 weights + 28GB slots).
 import json, subprocess, time, threading, urllib.request, statistics
 
 BASE = "http://127.0.0.1:8000"
-MODEL = "qwen38-flash-next-oq4e-mtp"
+# Same resolver as scripts/verify.sh / scripts/resolve_model.py — do not
+# hardcode a renamed checkpoint.
+def _resolve_model():
+    import os, json, urllib.request
+    fallback = os.environ.get("OMLX_MODEL", "qwen38-flash-next-oq4e-mtp")
+    try:
+        with urllib.request.urlopen(BASE + "/v1/models", timeout=5) as r:
+            ids = [m.get("id") for m in json.load(r).get("data") or [] if m.get("id")]
+        for i in ids:
+            if "flash" in i.lower():
+                return i
+        return ids[0] if ids else fallback
+    except Exception:
+        return fallback
+MODEL = _resolve_model()
 OUT = __import__("os").path.join(__import__("os").path.dirname(__import__("os").path.abspath(__file__)),
                                  "..", "results", "warm_8slot_results.json")
 SALT = time.strftime("%H%M%S")

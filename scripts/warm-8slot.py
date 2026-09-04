@@ -70,7 +70,28 @@ def mk_prompt(approx_tokens, salt, extra=""):
     return (f"Read carefully. Reply with exactly: DONE-{salt}\n\n") + UNIT * reps + f"\n[variant {salt}]" + extra
 
 def one(tag, prompt, out, max_tokens=8, temp=0):
-    body = json.dumps({"model": MODEL, "messages": [{"role": "user", "content": prompt}],
+    return stream_chat(tag, [{"role": "user", "content": prompt}], out, max_tokens, temp)
+
+
+def follow(tag, prompt, salt, out, max_tokens=16, temp=0):
+    """Second turn against the SAME long prompt (issue #18/#19).
+
+    The assistant turn repeats the completion the first turn produced, so the
+    server can reuse the full prefix (cache hit, not a re-prefill) and the
+    question is a real long-context retrieval check: reply with exactly the
+    needle token embedded in the prompt.
+    """
+    messages = [
+        {"role": "user", "content": prompt},
+        {"role": "assistant", "content": f"DONE-{salt}"},
+        {"role": "user",
+         "content": "Output exactly the token you were told to remember, and nothing else."},
+    ]
+    return stream_chat(tag, messages, out, max_tokens, temp)
+
+
+def stream_chat(tag, messages, out, max_tokens=8, temp=0):
+    body = json.dumps({"model": MODEL, "messages": messages,
                        "max_tokens": max_tokens, "temperature": temp,
                        "stream": True, "stream_options": {"include_usage": True}}).encode()
     req = urllib.request.Request(f"{BASE}/v1/chat/completions", data=body,
@@ -115,7 +136,18 @@ def one(tag, prompt, out, max_tokens=8, temp=0):
 
 RESULTS = {}
 
-def run_group(name, jobs, tick_schedule=None):
+def cached_tokens():
+    """Server-side prefix-cache counter (stats.json), never invented."""
+    try:
+        with open(__import__("os").path.expanduser("~/.omlx/stats.json")) as f:
+            data = json.load(f)
+        per = data.get("per_model", {}).get(MODEL, {})
+        return int(per.get("cached_tokens", 0))
+    except Exception:
+        return None
+
+
+def run_group(name, jobs, tick_schedule=None, followups=None):
     RESULTS.clear()
     threads = [threading.Thread(target=one, args=(t, p, RESULTS, mt)) for t, p, mt in jobs]
     t0 = time.perf_counter()
@@ -132,11 +164,23 @@ def run_group(name, jobs, tick_schedule=None):
             th = threading.Thread(target=fire, args=(delay, label))
             th.start()
             tick_threads.append(th)
+    resid_threads = []
+    resid = {}
+    if followups:
+        def fire_follow(delay, tag, prompt, salt):
+            time.sleep(delay)
+            follow(tag, prompt, salt, resid)
+        for delay, tag, prompt, salt in followups:
+            th = threading.Thread(target=fire_follow, args=(delay, tag, prompt, salt))
+            th.start()
+            resid_threads.append(th)
     for th in threads:
         th.join()
     wall = round(time.perf_counter() - t0, 2)
     for th in tick_threads:
         th.join(timeout=1800)
+    for th in resid_threads:
+        th.join(timeout=3600)
     fills = [v for k, v in RESULTS.items() if not k.startswith("tick-")]
     ticks = [v for k, v in RESULTS.items() if k.startswith("tick-")]
     rec = {"wall_s": wall, "streams": dict(RESULTS)}
@@ -148,8 +192,18 @@ def run_group(name, jobs, tick_schedule=None):
         tw = [t["wall_s"] for t in ticks if t and t.get("wall_s")]
         rec["tick_walls_s"] = tw
         rec["tick_median_s"] = round(statistics.median(tw), 2) if tw else None
+    if resid:
+        rec["residency"] = {
+            "followups": dict(resid),
+            "cached_tokens_before": cached_tokens(),
+        }
     rec["footprint"] = footprint()
     rec["df_free_gb"] = df_free_gb()
+    if "residency" in rec:
+        rec["residency"]["cached_tokens_after"] = cached_tokens()
+        cb = rec["residency"].get("cached_tokens_before") or 0
+        ca = rec["residency"].get("cached_tokens_after") or 0
+        rec["residency"]["cached_delta"] = ca - cb
     R["phases"][name] = rec
     save()
     print(f"[warm8] {name} wall={wall}s spread={rec.get('fill_wall_spread_s')}s "
@@ -221,13 +275,36 @@ def evaluate_gates():
         peak = _gb((rec.get("footprint") or {}).get("peak"))
         if peak is not None and peak > 102:
             fails.append("%s peak footprint %s GB > 102 GB" % (phase, peak))
+        resid = rec.get("residency")
+        if resid:
+            needle = "NEEDLE-%s" % SALT
+            for tag, fu in (resid.get("followups") or {}).items():
+                if fu.get("error"):
+                    fails.append("%s/%s residency error" % (phase, tag))
+                got = (fu.get("completion") or "").strip()
+                if got != needle:
+                    fails.append("%s/%s long-context retrieval %r != %r" % (phase, tag, got[:40], needle))
+            delta = resid.get("cached_delta") or 0
+            if delta < 2 * 252000:
+                fails.append("%s prefix cache delta %s < 504000 (both 252K contexts must stay resident)"
+                             % (phase, delta))
+            if (resid.get("cached_tokens_before") is None or resid.get("cached_tokens_after") is None):
+                fails.append("%s could not read stats.json cached_tokens" % phase)
     R["gate_fails"] = fails
     return fails
 
 def phase_w1():
-    jobs = [("orch-A", mk_prompt(252000, f"wA{SALT}"), 8),
-            ("orch-B", mk_prompt(252000, f"wB{SALT}"), 8)]
+    global ORCH
+    needle = f"NEEDLE-{SALT}"
+    ORCH["orch-A"] = mk_prompt(252000, f"wA{SALT}",
+                               extra=f"\n\n[needle] Remember this token: {needle}\n")
+    ORCH["orch-B"] = mk_prompt(252000, f"wB{SALT}",
+                               extra=f"\n\n[needle] Remember this token: {needle}\n")
+    jobs = [(t, ORCH[t], 8) for t in ("orch-A", "orch-B")]
     run_group("W1_2x252k_boot_warm", jobs, tick_schedule=[(240, "tick-1"), (600, "tick-2")])
+
+
+ORCH = {}
 
 def phase_w2():
     jobs = [("tdd-1", mk_prompt(32000, f"t1{SALT}"), 8),
@@ -236,7 +313,11 @@ def phase_w2():
             ("coder-2", mk_prompt(64000, f"c2{SALT}"), 8),
             ("audit-1", mk_prompt(64000, f"a1{SALT}"), 8),
             ("audit-2", mk_prompt(64000, f"a2{SALT}"), 8)]
-    run_group("W2_6workers_on_hot_orch", jobs)
+    # While the workers run, continue BOTH 252K chats (issue #18/#19): the
+    # follow-ups reuse the full prefix and ask for the embedded needle.
+    run_group("W2_6workers_on_hot_orch", jobs,
+              followups=[(150, "res-orch-A", ORCH["orch-A"], f"wA{SALT}"),
+                         (240, "res-orch-B", ORCH["orch-B"], f"wB{SALT}")])
 
 def guard(name, fn):
     print(f"[warm8] {name} ...", flush=True)

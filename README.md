@@ -52,7 +52,7 @@ Why a single oMLX process: see [docs/BATTERY.md](docs/BATTERY.md) for two
 ## Quick start
 
 ```bash
-git clone <this repo>
+git clone https://github.com/hudsonwa/Qwen3.8-Flash-Next-oMLX-Recipe.git
 cd Qwen3.8-Flash-Next-oMLX-Recipe
 bash setup.sh                    # fail-closed; renders scripts/serve-flash.sh; no launchd
 bash scripts/serve-flash.sh      # manual launch
@@ -60,6 +60,16 @@ bash scripts/verify.sh           # ctx, footprint, live generation — fail-clos
 # optional (~13 min acceptance battery + boot-warm):
 python3 scripts/warm-8slot.py
 ```
+
+## Quick ops
+
+```bash
+lsof -ti tcp:8000 | xargs kill   # stop by PORT: killing the wrapper leaves the child alive
+```
+
+Never run `scripts/serve-flash.sh` and the launchd job together (port conflict
+kills the newcomer; the old flags keep serving). Bind stays `127.0.0.1` unless
+`auth.api_key` is set in `~/.omlx/settings.json`.
 
 Launchd (`KeepAlive` + 30 s restart on a ~69 GB Metal process) is **opt-in
 appliance mode**:
@@ -140,7 +150,7 @@ API key in `~/.omlx/settings.json` → `auth.api_key` first.
 |---|---|---|
 | Booted, idle (weights paged in) | ~69 GB | flash oQ4e checkpoint |
 | Peak during dual 252K cold fill (W1) | **98 GB** | `results/warm_8slot_results.json` |
-| Peak during dual 252K cold fill (G1) | **102 GB** | `results/p4_combined_results.json` / `omlx_flash_2way_results.json` — **planning number** |
+| Peak during dual 252K cold fill (G1) | **102 GB** | `results/omlx_flash_2way_results.json` — **planning number** |
 | Steady, all 8 HTTP slots resident | **73 GB** | orchestrator KV auto-tiers to SSD |
 | Static worst case (nothing tiered) | ~97–99 GB | 69 + 2×9.25 + 2×1.2 + 4×2.3 GB |
 
@@ -202,13 +212,17 @@ All measured traps live in [docs/TRAPS.md](docs/TRAPS.md). Measured NOs:
 |---|---|
 | MTP speculative decode on **this** checkpoint, **this** box | 60.9 tok/s solo vs ~86 with it off — leave off until `results/mtp_on_off.json` covers load too; not a general law |
 | Second flash instance (2× weights) | Impossible: 2×69 GB weights alone exceed the chip |
-| 27B / llama.cpp long-prefill concurrency | FIFO staircase on those engines — oMLX chunked is the measured fix **for that experiment** |
+| 27B / llama.cpp long-prefill concurrency | FIFO staircase observed on those engines (27B 4×118K receipt in `results/omlx27_4way_results.json`; llama.cpp *receipt pending re-run* — no JSON in `results/`) — oMLX chunked is the measured fix **for that experiment** |
 
 ## Results
 
 Raw measurement JSON from the reference machine: [results/](results/) —
-`warm_8slot_results.json` (the 8-slot acceptance battery), plus the earlier
-dual-252K and 4×118K batteries. Methodology:
+`warm_8slot_results.json` (the 8-slot acceptance battery: W1 dual-252K boot-warm +
+ticks, W2 six workers), `omlx_flash_2way_results.json` (Flash-Next 2×252K: G0/G1/D2),
+`omlx27_4way_results.json` (27B dense 4×118K, chunked off vs on), and
+`p4_combined_results.json` (dual-engine stress, flash :8000 + 27B :8001). There is
+**no mlx-serve JSON in `results/`** — every mlx-serve figure in this repo is labeled
+*receipt pending re-run*. Methodology:
 [docs/BATTERY.md](docs/BATTERY.md).
 
 ## Credits

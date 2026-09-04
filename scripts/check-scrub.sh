@@ -4,11 +4,15 @@
 set -u
 cd "$(dirname "$0")/.." || exit 1
 pats='joshua|hudsonwa|jhudson1980|mortimer|/Users/[a-z]+|\.hermes|exmachina'
+# The repo's own public clone URL is public metadata on GitHub; strip the exact
+# string before the sweep so copy-paste-clean quick start (issue #1) can exist.
+# Everything else stays scrubbed. Keep this exclusion literal-exact.
+own_repo_url='github\.com/hudsonwa/Qwen3\.8-Flash-Next-oMLX-Recipe'
 hits=0
 while IFS= read -r f; do
   # skip this script: its pattern list contains the literals by design
   [ "$f" = "scripts/check-scrub.sh" ] && continue
-  m=$(grep -inE "$pats" -- "$f" 2>/dev/null | head -3)
+  m=$(sed -E "s|$own_repo_url|<OWN-REPO-URL>|g" -- "$f" 2>/dev/null | grep -inE "$pats" | head -3)
   if [ -n "$m" ]; then
     echo "HIT: $f"; echo "$m"; hits=$((hits+1))
   fi

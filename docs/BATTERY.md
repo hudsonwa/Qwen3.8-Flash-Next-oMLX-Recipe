@@ -37,12 +37,15 @@ Architecture: Qwen3.8 **Flash-Next** oQ4e, oMLX 0.6.4, chunked on.
 | Test | Result | Receipt |
 |---|---|---|
 | W1 dual fill + ticks | walls 483.62 / 488.35 s, spread **4.73 s**; ticks **11.26 s** and **1.12 s**; peak **98 GB**; prompt_tokens **240,393** | `results/warm_8slot_results.json` |
-| G1 dual fill | peak **102 GB** (planning number vs 107.5 GB Metal cap); prompt_tokens **240,381** | `results/omlx_flash_2way_results.json`, `results/p4_combined_results.json` |
-| W2 six workers on hot orch | prompt_tokens **30,585** (TDD) / **61,089** (coder, auditor); pair spreads ≤ 8.9 s | `results/warm_8slot_results.json` |
-| Solo 252K fill | 228.7 s (~1,050 tok/s) | BATTERY notes / prior run |
+| G1 dual fill | walls 539.09 / 541.91 s, spread **2.82 s**; ticks 24.91 / 1.34 / 1.31 s; peak **102 GB** (planning number vs 107.5 GB Metal cap); prompt_tokens **240,381** | `results/omlx_flash_2way_results.json`; corroborated by `results/p4_combined_results.json` H2_flash_2x252k_fill peak 102 |
+| W2 six workers on hot orch | prompt_tokens **30,585** (TDD) / **61,089** (coder, auditor); pair spreads auditors 0.21 s / coders 2.53 s / TDD 8.88 s; ~1,017 tok/s agg | `results/warm_8slot_results.json` |
+| Solo 252K fill (G0) | 228.7 s (~1,050 tok/s) | `results/omlx_flash_2way_results.json` |
 
-There is **no mlx-serve JSON** in `results/` for the old “1,084 s / spread 563 s”
-figure. That number is dropped until a receipt file exists.
+**mlx-serve comparison (same Flash-Next model, different engine):** the historical
+measurement was 2 serial FIFO prefills, 1,084 s wall / spread 563 s, with a planner
+tick waiting 553 s mid-fill. **Receipt pending re-run** — no mlx-serve JSON exists
+in `results/` for these figures; treat them as historical until re-measured, and do
+not delete them until a replacement receipt lands.
 
 Tick range to quote in summaries: **~1–25 s**, with the W1 pair cited together.
 

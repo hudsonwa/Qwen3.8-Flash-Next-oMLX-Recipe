@@ -37,6 +37,8 @@ Download (pin the revision; do not take whatever `main` is tomorrow):
 hf download Jundot/Qwen3.8-Flash-Next-oQ4e-mtp \
   --revision 2615fc0e976e65c2f3b55daca3a948f1cdc5b9f8 \
   --local-dir ~/models/qwen38-flash-next-oq4e-mtp
+echo 2615fc0e976e65c2f3b55daca3a948f1cdc5b9f8 \
+  > ~/models/qwen38-flash-next-oq4e-mtp/.hf_revision
 ```
 
 Count shards against the Hub sibling list before serving. Do **not**

@@ -54,17 +54,20 @@ Why a single oMLX process: see [docs/BATTERY.md](docs/BATTERY.md) for two
 ```bash
 git clone <this repo>
 cd Qwen3.8-Flash-Next-oMLX-Recipe
-bash setup.sh                    # prerequisite checks; renders scripts/serve-flash.sh
+bash setup.sh                    # fail-closed; renders scripts/serve-flash.sh; no launchd
 bash scripts/serve-flash.sh      # manual launch
 bash scripts/verify.sh           # ctx, footprint, live generation — fail-closed
 # optional (~13 min acceptance battery + boot-warm):
 python3 scripts/warm-8slot.py
 ```
 
-`setup.sh` still writes a LaunchAgent plist today (`KeepAlive` + 30 s restart
-on a ~69 GB Metal process). That is appliance mode and should be opt-in —
-tracked as issue #3. Do not `launchctl bootstrap` it unless you want the
-server restarted for you at login.
+Launchd (`KeepAlive` + 30 s restart on a ~69 GB Metal process) is **opt-in
+appliance mode**:
+
+```bash
+bash setup.sh --install-agent
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.omlx.flash8slot.plist
+```
 
 An AI agent doing this install should read [AGENT.md](AGENT.md) first.
 Pinned binaries and the Hugging Face revision: [MODELS.md](MODELS.md).
@@ -101,8 +104,9 @@ checkpoint.
 60.9 tok/s on vs ~86 off). It is not a general law until
 `results/mtp_on_off.json` exists for solo **and** load.
 
-`setup.sh` patches both files when they exist. Missing files currently print
-a NOTE and can still exit 0 — that hole is issue #3.
+`setup.sh` patches both files. Missing files are a **fail** (start the server
+once so oMLX writes them, stop it, re-run setup.sh). oMLX version must be
+0.6.4 and `$MODEL_SRC/.hf_revision` must match the pin in MODELS.md.
 
 ## Launch
 
@@ -113,10 +117,9 @@ a NOTE and can still exit 0 — that hole is issue #3.
   --max-concurrent-requests 8 --paged-ssd-cache-dir ~/.omlx/ssd-cache
 ```
 
-**At boot (currently written by `setup.sh`; treat as opt-in, issue #3):**
-the rendered plist is `~/Library/LaunchAgents/com.omlx.flash8slot.plist`
-from `scripts/com.omlx.flash8slot.plist.in`. If you really want appliance
-mode:
+**At boot (opt-in, `bash setup.sh --install-agent`):**
+writes `~/Library/LaunchAgents/com.omlx.flash8slot.plist` from
+`scripts/com.omlx.flash8slot.plist.in`. Then:
 
 ```bash
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.omlx.flash8slot.plist

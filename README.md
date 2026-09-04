@@ -113,6 +113,8 @@ once so oMLX writes them, stop it, re-run setup.sh). oMLX version must be
 **Manual (default):**
 
 ```bash
+# Stop anything already on :8000 first (lsof -i :8000). The old server keeps
+# the port and the new launch dies silently.
 ~/.omlx/bin/omlx serve --model-dir ~/models/omlx-qwen38 --host 127.0.0.1 --port 8000 \
   --max-concurrent-requests 8 --paged-ssd-cache-dir ~/.omlx/ssd-cache
 ```

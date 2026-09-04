@@ -14,7 +14,10 @@ while IFS= read -r f; do
   fi
 done < <(git ls-files)
 # commit-object identity check (published metadata, not just working tree)
-bad_ids=$(git log --format='%h %an %ae %cn %ce' --all | grep -viE 'noreply@users' || true)
+# Neutral: GitHub noreply (ID+login@users.noreply.github.com) AND
+# noreply@users.noreply.github.com. The old substring 'noreply@users' missed
+# the hudsonwa ID+login form and tripped every real contributor commit.
+bad_ids=$(git log --format='%h %an %ae %cn %ce' --all | grep -viE 'users\.noreply\.github\.com|noreply@github\.com|noreply@users' || true)
 if [ -n "$bad_ids" ]; then
   echo "HIT: non-neutral git identity in history:"; echo "$bad_ids"; hits=$((hits+1))
 fi

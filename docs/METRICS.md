@@ -2,10 +2,15 @@
 
 Two different numbers. Do not mix them.
 
-| Name | Definition |
+| Column | Definition |
 |---|---|
-| Prefill tok/s | `prompt_tokens / TTFT_s` where TTFT is time to the first streamed token |
-| Generation tok/s | `(completion_tokens - 1) / (wall_s - TTFT_s)` after the first token |
+| decode tok/s | `(completion_tokens - 1) / (wall_s - TTFT_s)` after first streamed token |
+| prefill tok/s | `prompt_tokens / TTFT_s` |
+| TTFT | seconds to first streamed token |
+| max admitted ctx | `/v1/models` `max_model_len` |
+| peak GB | `phys_footprint_peak` |
+
+See [docs/METHODOLOGY.md](METHODOLOGY.md). Two profiles: [docs/PROFILES.md](PROFILES.md).
 
 Protocol (`scripts/benchmark.py`):
 

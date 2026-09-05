@@ -68,3 +68,8 @@ stated). Not folklore.
     OOMs the dual-~240k layout is a regression. If you enable MTP, measure peak
     phys_footprint against 102 / 107.5 GB first.
 
+15. **Never raise `iogpu.wired_limit_mb` as the fix.** The budget is the Metal
+    107.5 GB cap this recipe already plans against. Raising the kernel limit is
+    not a serving-profile success.
+
+

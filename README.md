@@ -15,8 +15,9 @@ Re-measure on your own hardware before trusting any figure here.
 ## TL;DR (non-technical)
 
 - **What it is:** a free, do-it-yourself recipe that turns a 128 GB Apple Silicon
-  Mac into a private AI server running Qwen3.8 Flash-Next — no cloud, no
-  subscription, nothing leaves your machine.
+  Mac into a private AI server running Qwen3.8 Flash-Next. **Install** still
+  fetches the runtime from GitHub and the checkpoint from Hugging Face;
+  **inference** after that can stay on the Mac (no cloud API).
 - **What was measured:** **one** oMLX process with `max_concurrent_requests=8`.
   The acceptance battery is **two sequential phases**: first two long prefills
   together, then six medium prefills together. That is HTTP concurrency on one
@@ -231,6 +232,10 @@ ticks, W2 six workers), `omlx_flash_2way_results.json` (Flash-Next 2×252K: G0/G
 - Qwen team — the Flash-Next checkpoint.
 - Recipe format inspired by MiaAI-Lab's per-config deployment recipes and
   tonyd2wild's cookbook/setup.sh/AGENT.md pattern.
+
+## Maintainer
+
+GitHub owner of this repository (see the clone URL in Quick start).
 
 ## License
 

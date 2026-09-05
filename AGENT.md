@@ -43,3 +43,15 @@ Read this top to bottom before touching anything.
 8. **Fail closed.** If `scripts/verify.sh` reports a miss, stop and fix — do not
    declare success with degraded settings. A stack serving 131072-ctx instead of
    262144 will pass casual checks and fail real workloads hours later.
+
+9. **Commit identity.** If you commit to this repo, use the owning GitHub login
+   and the ID-prefixed `users.noreply.github.com` address (the form with a
+   numeric id, a plus sign, and the login). Never use
+   `login@users.noreply.github.com` without the numeric id — GitHub will
+   attribute those commits to whoever squatted that login. CI must use
+   `GITHUB_TOKEN` / `github-actions[bot]`, not a personal token.
+
+10. **Public-safe.** No personal email, no `/Users/<name>` paths, no machine
+    hostnames, no API keys in `results/` or logs. Run `bash scripts/check-scrub.sh`
+    before every push.
+

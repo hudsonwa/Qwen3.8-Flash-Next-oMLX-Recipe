@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+title: Qwen3.8 Flash-Next oMLX 8-slot recipe
+message: If you use this recipe, please cite it and upstream oMLX / Qwen.
+type: software
+license: MIT
+repository-code: "https://github.com/hudsonwa/Qwen3.8-Flash-Next-oMLX-Recipe"
+authors:
+  - name: "GitHub owner of this repository"
+abstract: >
+  Measured serving recipe for Qwen3.8 Flash-Next oQ4e on 128 GB Apple Silicon
+  via oMLX 0.6.4 (chunked prefill, 8 HTTP slots). Weights and oMLX are not MIT.

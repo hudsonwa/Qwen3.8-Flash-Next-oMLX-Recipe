@@ -1,9 +1,10 @@
 # Qwen3.8 Flash-Next on a 128 GB Mac — oMLX single-server recipe
 
-**Tweet-sized, JSON-backed:** 128 GB M5 Max, oQ4e, chunked prefill, dual ~240k
-walls **483.6 / 488.4 s** (2026-08-31). Decode tok/s is **not** those walls —
-see [docs/METRICS.md](docs/METRICS.md). Pair baseline vs recipe before citing
-a generation number. `results/mtp_on_off.json` is still missing.
+**Tweet-sized, JSON-backed (serving profile only):** 128 GB M5 Max, oQ4e,
+chunked prefill, dual ~240k walls **483.6 / 488.4 s** (2026-08-31,
+`results/warm_8slot_results.json`). Decode tok/s is **not** those walls.
+Interactive MTP profile: **no JSON yet** — see [docs/PROFILES.md](docs/PROFILES.md).
+
 
 ```
 This recipe (128 GB, 8 HTTP slots)     Different lab (e.g. 256 GB single-stream)

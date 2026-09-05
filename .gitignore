@@ -1,5 +1,6 @@
 # Local artifacts — never commit
 scripts/serve-flash.sh
+.omlx-state/
 *.log
 .DS_Store
 __pycache__/

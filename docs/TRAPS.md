@@ -62,3 +62,9 @@ stated). Not folklore.
 13. **Model discovery follows symlinks in the model dir.** That's the feature the
     quarantine dir uses (`~/models/omlx-qwen38/<one-symlink>`), but it also means a
     stray extra symlink in that dir silently adds a second loadable model.
+
+14. **Do not port ANE / 6-bit / 256 GB single-stream draft stacks onto this
+    128 GB 8-slot shape.** Different memory regime. One green decode number that
+    OOMs the dual-~240k layout is a regression. If you enable MTP, measure peak
+    phys_footprint against 102 / 107.5 GB first.
+

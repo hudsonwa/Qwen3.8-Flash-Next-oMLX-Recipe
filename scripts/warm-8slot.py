@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """8-slot all-flash warm + acceptance battery — north-star final shape.
 
-Shape: 2x 252K orchestrators, 2x 32K TDD, 2x 64K coders, 2x 64K auditors.
+Shape: 2x ~240k-measured orchestrators (prompt_tokens 240,393), 2x ~32K TDD,
+2x ~64K coders, 2x ~64K auditors. Do not sell 252K until the harness hits it.
 Server: oMLX 0.6.4 flash-next on :8000, chunked on, MTP off, enforcer 107.5GB.
 
 Phases:

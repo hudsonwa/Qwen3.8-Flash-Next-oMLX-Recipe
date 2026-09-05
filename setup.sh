@@ -8,16 +8,26 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 INSTALL_AGENT=0
-for arg in "$@"; do
-  case "$arg" in
+STATE=""
+while [ $# -gt 0 ]; do
+  case "$1" in
     --install-agent) INSTALL_AGENT=1 ;;
+    --state)
+      shift
+      STATE="${1:-}"
+      [ -n "$STATE" ] || { echo "FAIL: --state needs a directory" >&2; exit 1; }
+      ;;
     -h|--help)
-      echo "usage: bash setup.sh [--install-agent]"
+      echo "usage: bash setup.sh [--install-agent] [--state DIR]"
+      echo "  --state DIR  patch DIR/{settings,model_settings}.json instead of ~/.omlx"
+      echo "               (set OMLX_HOME=DIR when serving if the binary honors it)"
       exit 0
       ;;
-    *) echo "FAIL: unknown argument: $arg (only --install-agent is accepted)" >&2; exit 1 ;;
+    *) echo "FAIL: unknown argument: $1" >&2; exit 1 ;;
   esac
+  shift
 done
+OMLX_CONF="${STATE:-$HOME/.omlx}"
 
 OS="$(uname -s)"; ARCH="$(uname -m)"
 MEM_GB=$(( $(sysctl -n hw.memsize 2>/dev/null || echo 0) / 1024 / 1024 / 1024 ))
@@ -70,6 +80,29 @@ else
   else
     echo "==> model revision $got (OK)"
   fi
+  python3 - "$MODEL_SRC" "$(pwd)/files/SHA256SUMS" <<'PY'
+import hashlib, sys
+from pathlib import Path
+root, manifest = Path(sys.argv[1]), Path(sys.argv[2])
+bad = 0
+for line in manifest.read_text().splitlines():
+    line = line.strip()
+    if not line or line.startswith("#"):
+        continue
+    digest, name = line.split(None, 1)
+    p = root / name
+    if not p.is_file():
+        print("FAIL: missing", name)
+        bad += 1
+        continue
+    h = hashlib.sha256(p.read_bytes()).hexdigest()
+    if h != digest:
+        print("FAIL: SHA256 mismatch", name)
+        bad += 1
+if bad:
+    raise SystemExit(1)
+print("==> SHA256 manifest OK (%s)" % manifest)
+PY
 fi
 [ "$fail" = "1" ] && exit 1
 
@@ -77,20 +110,31 @@ mkdir -p "$MODEL_DIR"
 ln -sfn "$MODEL_SRC" "$MODEL_DIR/$(basename "$MODEL_SRC")"
 echo "==> quarantine dir ready: $MODEL_DIR -> $(basename "$MODEL_SRC")"
 
-mkdir -p "$HOME/.omlx/logs" "$HOME/.omlx/ssd-cache"
+mkdir -p "$OMLX_CONF/logs" "$OMLX_CONF/ssd-cache"
+if [ -n "$STATE" ]; then
+  echo "==> isolated state: $OMLX_CONF (will not patch ~/.omlx)"
+  mkdir -p "$OMLX_CONF"
+  if [ ! -f "$OMLX_CONF/settings.json" ] && [ -f "$HOME/.omlx/settings.json" ]; then
+    cp "$HOME/.omlx/settings.json" "$OMLX_CONF/settings.json"
+    echo "==> copied settings.json from ~/.omlx into --state (original left untouched)"
+  fi
+  if [ ! -f "$OMLX_CONF/model_settings.json" ] && [ -f "$HOME/.omlx/model_settings.json" ]; then
+    cp "$HOME/.omlx/model_settings.json" "$OMLX_CONF/model_settings.json"
+  fi
+fi
 
 # Missing configs are a FAIL. oMLX writes them on first start; stop the server
 # and re-run setup.sh. Never exit 0 on a half-install.
-if [ ! -f "$HOME/.omlx/settings.json" ]; then
-  echo "FAIL: $HOME/.omlx/settings.json missing — start the server once so oMLX writes it, stop it, re-run setup.sh" >&2
+if [ ! -f "$OMLX_CONF/settings.json" ]; then
+  echo "FAIL: $OMLX_CONF/settings.json missing — start the server once so oMLX writes it, stop it, re-run setup.sh" >&2
   exit 1
 fi
-if [ ! -f "$HOME/.omlx/model_settings.json" ]; then
-  echo "FAIL: $HOME/.omlx/model_settings.json missing — start the server once so oMLX writes it, stop it, re-run setup.sh" >&2
+if [ ! -f "$OMLX_CONF/model_settings.json" ]; then
+  echo "FAIL: $OMLX_CONF/model_settings.json missing — start the server once so oMLX writes it, stop it, re-run setup.sh" >&2
   exit 1
 fi
 
-python3 - "$HOME/.omlx/settings.json" <<'PYEOF'
+python3 - "$OMLX_CONF/settings.json" <<'PYEOF'
 import json, sys
 path = sys.argv[1]
 with open(path) as f:
@@ -116,7 +160,7 @@ else:
     print("settings.json already correct (chunked_prefill on, mc=8)")
 PYEOF
 
-python3 - "$HOME/.omlx/model_settings.json" <<'PYEOF'
+python3 - "$OMLX_CONF/model_settings.json" <<'PYEOF'
 import json, sys
 path = sys.argv[1]
 with open(path) as f:

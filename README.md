@@ -1,5 +1,19 @@
 # Qwen3.8 Flash-Next on a 128 GB Mac — oMLX single-server recipe
 
+**Tweet-sized, JSON-backed:** 128 GB M5 Max, oQ4e, chunked prefill, dual ~240k
+walls **483.6 / 488.4 s** (2026-08-31). Decode tok/s is **not** those walls —
+see [docs/METRICS.md](docs/METRICS.md). Pair baseline vs recipe before citing
+a generation number. `results/mtp_on_off.json` is still missing.
+
+```
+This recipe (128 GB, 8 HTTP slots)     Different lab (e.g. 256 GB single-stream)
+-----------------------------------    ---------------------------------------
+2 x ~240k concurrent *prefill*         single-stream *decode* / ANE / MTP draft
+walls 484 / 488 s (receipt 08-31)      different memory regime — do not port here
+generation tok/s: pending paired JSON  do not compare 8-token dummy walls to that
+```
+
+
 ## Machine contract
 
 These numbers are from **one dedicated 128 GB Apple Silicon Mac** (M5 Max-class
@@ -239,4 +253,6 @@ GitHub owner of this repository (see the clone URL in Quick start).
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT for **this recipe's scripts and docs only**. Model weights and oMLX are
+not MIT — [docs/THIRD_PARTY.md](docs/THIRD_PARTY.md). Provenance:
+[docs/PROVENANCE.md](docs/PROVENANCE.md).

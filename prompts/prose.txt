@@ -1,0 +1,3 @@
+In three short paragraphs, explain why a memory enforcer that throttles prefill
+chunks is not the same thing as having eight reserved KV slots. Do not use
+bullet lists. End with the single word: DONE.

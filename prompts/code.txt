@@ -1,0 +1,2 @@
+Write a Python function `def clamp(n, lo, hi):` that returns n limited to [lo, hi].
+Include a one-line docstring. No other commentary. Then show a doctest for clamp(5, 0, 3).

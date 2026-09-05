@@ -17,7 +17,9 @@ from __future__ import annotations
 import argparse
 import concurrent.futures
 import json
+import os
 import statistics
+import subprocess
 import sys
 import time
 import urllib.request
@@ -33,10 +35,39 @@ TARGET = 128  # completion max_tokens
 
 
 def resolve_model(base: str) -> str:
-    with urllib.request.urlopen(base + "/models", timeout=10) as r:
-        data = json.load(r)
-    ids = [m["id"] for m in data.get("data", []) if isinstance(m, dict) and m.get("id")]
-    return max(ids, key=len) if ids else sys.exit("no models advertised")
+    """One model id everywhere: delegate to the canonical resolver (#23).
+
+    OMLX_REQUIRE_LIVE=1 makes it fail closed (no silent fallback), so a
+    receipt can never be labelled for a model the server did not advertise.
+    """
+    root = base.rstrip("/")
+    if root.endswith("/v1"):
+        root = root[:-3]  # resolve_model.py appends /v1/models itself
+    env = dict(os.environ, OMLX_BASE=root, OMLX_REQUIRE_LIVE="1")
+    script = Path(__file__).resolve().parent / "resolve_model.py"
+    p = subprocess.run([sys.executable, str(script)], capture_output=True,
+                       text=True, timeout=15, env=env)
+    if p.returncode != 0 or not p.stdout.strip():
+        sys.exit("could not resolve model id from %s: %s"
+                 % (base, (p.stderr or p.stdout).strip()[-200:]))
+    return p.stdout.strip().splitlines()[-1]
+
+
+def server_mode(model_id: str) -> dict:
+    """Read-only snapshot of the actual server-side mode.
+
+    The run label (mtp-on / mtp-off) is the operator's claim; this proves
+    what the server was configured with at measurement time.
+    """
+    p = Path.home() / ".omlx" / "model_settings.json"
+    try:
+        d = json.loads(p.read_text())
+        m = (d.get("models") or {}).get(model_id) or {}
+        return {"file": str(p), "mtp_enabled": m.get("mtp_enabled"),
+                "mtp_num_draft_tokens": m.get("mtp_num_draft_tokens"),
+                "max_context_window": m.get("max_context_window")}
+    except Exception as e:
+        return {"file": str(p), "error": str(e)[:120]}
 
 
 def one_request(base: str, model: str, max_tokens: int) -> dict:
@@ -77,18 +108,19 @@ def measure(base: str, model: str, concurrency: int, turns: int, max_tokens: int
         return [f.result() for f in futures]
 
 
-def summarize(label: str, mode: str, recs: list[dict]) -> dict:
+def summarize(label: str, mode: str, recs: list[dict], model: str) -> dict:
     tps = [r["completion_tok_per_s"] for r in recs if r["completion_tok_per_s"] > 0]
     return {
         "mode": mode,
         "label": label,
+        "server_mode": server_mode(model),  # actual config at measure time
         "requests": len(recs),
         "mean_tok_per_s": round(statistics.mean(tps), 2) if tps else 0.0,
         "median_tok_per_s": round(statistics.median(tps), 2) if tps else 0.0,
         "p95_tok_per_s": round(sorted(tps)[int(len(tps) * 0.95) - 1], 2) if tps else 0.0,
         "mean_completion_tokens": round(statistics.mean(r["completion_tokens"] for r in recs), 1),
         "mean_seconds": round(statistics.mean(r["seconds"] for r in recs), 3),
-        "notes": "server mode set by operator (mtp_enabled in ~/.omlx/model_settings.json); "
+        "notes": "server mode snapshotted read-only from ~/.omlx/model_settings.json; "
         "completion tok/s and verbatim usage dicts; no cache-hit numbers are invented.",
         "raw": recs,
     }
@@ -127,7 +159,7 @@ def main() -> int:
     print(f"model={model} label={args.label} concurrency={args.concurrency}", flush=True)
     recs = measure(args.base, model, args.concurrency, args.turns, args.max_tokens)
     key = f"{args.label}-conc{args.concurrency}"
-    entry = summarize(args.label, f"concurrency={args.concurrency}", recs)
+    entry = summarize(args.label, f"concurrency={args.concurrency}", recs, model)
     entry["model"] = model
 
     out = Path(args.out)

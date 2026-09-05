@@ -9,7 +9,11 @@ Phases:
   W2  6 worker fills simultaneously (2x32K, 2x64K, 2x64K) on top of hot orchestrators
   Footprint + df captured after each phase.
 
-Predicted steady footprint: ~96.9GB (69 weights + 28GB slots).
+Measured phys_footprint (results/ 2026-08-31): idle ~69 GB; dual-252K peaks
+W1 98 GB / G1 102 GB. Plan to 102 GB against the 107.5 GB Metal cap.
+Steady after SSD tiering ~73 GB. Do not replace those JSON files with a
+failed re-run.
+
 """
 import json, subprocess, time, threading, urllib.request, statistics
 

@@ -61,3 +61,9 @@ only). Short-load did not win. Decode tok/s live in `results/decode_table.json`
   JSON `prompt_tokens`.
 - Battery runs from a cold, single-instance state; every phase writes its JSON
   before the next starts, so a crash still banks the completed phases.
+- **Prefill chunk size is not a recipe knob.** Spark/vLLM 2k–4k chunks are a
+  habit, not a port. `setup.sh` / `omlx-config.py` / `serve-flash.sh` do not
+  expose `prefill_step_size`. Daily serving is `chunked_prefill` on; upstream
+  default step (2048) plus the runtime adaptive throttle. No A/B JSON vs 96.8
+  on this recipe. Do not expect a 24% win at 256k (that +24.7% was 8k-only on
+  vLLM/Spark, a different stack).

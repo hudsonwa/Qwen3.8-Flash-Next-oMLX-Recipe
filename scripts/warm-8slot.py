@@ -9,11 +9,13 @@ Server: oMLX 0.6.4 flash-next on :8000, chunked on, MTP off, enforcer 107.5GB.
 
 Do not replace results/warm_8slot_results.json (2026-08-31 dual-head receipt)
 with a failed re-run. L1 writes results/single_head_latency.json instead.
-Writes timestamped results/warm_8slot_<utc>.json only. Never writes #48
-hot-cache JSON.
+`--out PATH` writes that timestamped JSON only. Promote
+`results/warm_8slot_latest.json` (gitignored) on pass. Never writes #48
+hot-cache JSON. Non-zero on needle / quality / spread miss or peak > plan.
 
 """
 import json, os, subprocess, time, threading, urllib.request, statistics, shutil
+import argparse
 import sys as _sys
 from pathlib import Path as _Path
 
@@ -21,28 +23,43 @@ _HERE = _Path(__file__).resolve().parent
 _sys.path.insert(0, str(_HERE))
 from resolve_model import resolve as _resolve_model_id  # noqa: E402
 
-DUAL_HEAD = "--dual-head" in _sys.argv
-if DUAL_HEAD:
-    _sys.argv = [a for a in _sys.argv if a != "--dual-head"]
-PHASE_ARGS = [a for a in _sys.argv[1:] if not a.startswith("-")]
-if "--help" in _sys.argv or "-h" in _sys.argv:
-    print("usage: warm-8slot.py [--dual-head] [W1] [W2]")
-    print("default: one 252K head + short slots. --dual-head restores the old pair.")
-    raise SystemExit(0)
+_ap = argparse.ArgumentParser(description="8-slot warm gate. Default: one 252K head + short slots.")
+_ap.add_argument("--dual-head", action="store_true",
+                 help="gated historical pair; not the daily path")
+_ap.add_argument("--out", default=None,
+                 help="timestamped JSON path (never warm_8slot_results.json or hot_cache_*.json)")
+_ap.add_argument("phases", nargs="*", default=["W1", "W2"], help="W1 and/or W2")
+_args = _ap.parse_args()
+DUAL_HEAD = bool(_args.dual_head)
+PHASE_ARGS = list(_args.phases) or ["W1", "W2"]
 
-BASE = "http://127.0.0.1:8000"
-os.environ.setdefault("OMLX_REQUIRE_LIVE", "1")
-os.environ.setdefault("OMLX_BASE", BASE + "/v1")
-MODEL = _resolve_model_id()
 _RES = _HERE.parent / "results"
 _PROTECT = {
     "warm_8slot_results.json",
     "hot_cache_one_brain.json",
     "hot_cache_current.json",
+    "hot_cache_one_brain_pr48.json",
+    "warm_8slot_latest.json",
 }
-OUT = str(_RES / ("warm_8slot_%s.json" % time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())))
-if os.path.basename(OUT) in _PROTECT:
-    raise SystemExit("refuse: would overwrite protected receipt")
+
+
+def _forbidden(name: str) -> bool:
+    if name in _PROTECT:
+        return True
+    if name.startswith("hot_cache_") and name.endswith(".json"):
+        return True
+    return False
+
+
+_stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+OUT = _args.out or str(_RES / ("warm_8slot_%s.json" % _stamp))
+if _forbidden(os.path.basename(OUT)):
+    raise SystemExit("refuse: would overwrite protected receipt %s" % OUT)
+
+BASE = "http://127.0.0.1:8000"
+os.environ.setdefault("OMLX_REQUIRE_LIVE", "1")
+os.environ.setdefault("OMLX_BASE", BASE + "/v1")
+MODEL = _resolve_model_id()
 SALT = time.strftime("%H%M%S")
 
 UNIT = ("Linear attention layers process the sequence with constant memory per step, while full "
@@ -56,7 +73,7 @@ R = {"started": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "salt": SALT, "phases": {}
                "dual-head gated --dual-head" if DUAL_HEAD else "dual-head off"]}
 
 def save():
-    if os.path.basename(OUT) in _PROTECT:
+    if _forbidden(os.path.basename(OUT)):
         raise RuntimeError("refuse: protected receipt %s" % OUT)
     with open(OUT, "w") as f:
         json.dump(R, f, indent=1)

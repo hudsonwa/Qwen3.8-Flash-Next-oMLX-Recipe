@@ -61,6 +61,7 @@ It does **not** run oMLX or Metal.
 | [MODELS.md](MODELS.md) | oMLX 0.6.4 DMG SHA + HF revision |
 | [AGENT.md](AGENT.md) | Agent install rules |
 | [docs/HARDWARE.md](docs/HARDWARE.md) | What was measured / what was not |
+| [docs/SCOPE.md](docs/SCOPE.md) | Measured appliance recipe — not a library |
 | [docs/TRAPS.md](docs/TRAPS.md) | Measured failure modes |
 | [docs/BATTERY.md](docs/BATTERY.md) | How verdicts were earned (not a second numbers table) |
 | [docs/DECODE.md](docs/DECODE.md) | Decode protocol |

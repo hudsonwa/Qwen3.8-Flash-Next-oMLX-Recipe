@@ -1,5 +1,15 @@
 # Changelog
 
+## profile-1.2.0-2026-09-07
+
+Daily serving is unchanged: **1×252K head + short slots**, MTP **off**,
+`hot_cache_max_size=0`, `max_concurrent_requests=8`, oMLX **0.6.4**.
+
+- `results/decode_table.json` published (n=3, solo + short8, 128 GB Mac)
+- `results/quality_canary.json` published (fail-closed; not a full eval harness)
+- mlx-serve: no receipt, no claim
+- Hardware matrix, short README, warm `--out` gate, public receipt template
+
 ## profile-1.1.0-2026-09-06
 
 Daily serving is unchanged: **1×252K head + short slots**, MTP **off**,

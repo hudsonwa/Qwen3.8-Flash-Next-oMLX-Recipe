@@ -38,24 +38,11 @@ not the daily warm path.
 
 Competitive engine rows: [PENDING.md](PENDING.md) — no receipt, no claim.
 
-Tick range to quote: G1 **24.91 s** and W1 **11.26 s** / **1.12 s** (cite
-PROFILE.md). Shorts during a single long fill 4–12 s remain OPEN.
+Tick range: cite [PROFILE.md](PROFILE.md). Shorts during a single long fill
+4–12 s remain OPEN (`results/two_lane_latency.json`).
 
-## Footprint ledger (phys_footprint, GB)
-
-| State | Measured |
-|---|---|
-| Flash weights, idle | ~69 |
-| Dual 252K cold-fill peak (W1) | **98** |
-| Dual 252K cold-fill peak (G1) | **102** — planning number |
-| Steady, all 8 HTTP slots resident | 73 (orchestrator KV auto-tiered to SSD) |
-| Static worst case (nothing tiered) | ~97–99 |
-| Slot cache rate | ~9.25 GB / 252K slot; ~1.2 GB / 32K; ~2.3 GB / 64K |
-
-## SSD tier
-
-See [PROFILE.md](PROFILE.md): disk hit vs RAM hit vs miss. Two 252K prefixes
-may not both stay in the LRU. Keep ~100 GB free on the cache volume.
+Memory and miss/hit walls live in [PROFILE.md](PROFILE.md) / `results/*.json`.
+Do not copy them here.
 
 ## MTP
 

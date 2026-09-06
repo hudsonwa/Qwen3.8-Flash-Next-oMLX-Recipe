@@ -1,7 +1,8 @@
 # TRAPS — every way this stack has actually failed
 
 Each trap below was hit and measured on the reference machine (oMLX 0.6.4 unless
-stated). Not folklore.
+stated). Not folklore. Daily walls/peaks: [PROFILE.md](PROFILE.md) — do not
+copy that table here.
 
 1. **`chunked_prefill` defaults to off — silently gives you a staircase.** With
    `prefill_priority: "context"` and chunking off, simultaneous long prefills run one

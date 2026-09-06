@@ -1,7 +1,8 @@
 omlx 0.6.4
-install: oMLX.app bundle + CLI shim (not pip; brew omlx is a shim symlink)
+install: DMG / oMLX.app bundle + CLI shim (not brew, not pip)
 command: python -c "from omlx.custom_kernels import native_kernel_status; print(native_kernel_status())"
-interpreter: app bundled cpython-3.11 via omlx-cluster-python
+interpreter: app bundled cpython via omlx-cluster-python
 system python3: ModuleNotFoundError: No module named 'omlx' (recorded; did not rebuild)
+verified: 2026-09-06T23:31+0800 — all five available true; no rebuild
 
 {'bonsai': {'available': True, 'import_error': None}, 'decode_fast': {'available': True, 'import_error': None}, 'glm_moe_dsa': {'available': True, 'import_error': None}, 'minimax_m3': {'available': True, 'import_error': None}, 'qwen35_prefill': {'available': True, 'import_error': None}}

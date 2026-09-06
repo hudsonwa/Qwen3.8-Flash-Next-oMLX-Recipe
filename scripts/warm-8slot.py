@@ -22,6 +22,7 @@ from pathlib import Path as _Path
 _HERE = _Path(__file__).resolve().parent
 _sys.path.insert(0, str(_HERE))
 from resolve_model import resolve as _resolve_model_id  # noqa: E402
+from receipt_guard import is_protected, timestamped  # noqa: E402
 
 _ap = argparse.ArgumentParser(description="8-slot warm gate. Default: one 252K head + short slots.")
 _ap.add_argument("--dual-head", action="store_true",
@@ -34,26 +35,9 @@ DUAL_HEAD = bool(_args.dual_head)
 PHASE_ARGS = list(_args.phases) or ["W1", "W2"]
 
 _RES = _HERE.parent / "results"
-_PROTECT = {
-    "warm_8slot_results.json",
-    "hot_cache_one_brain.json",
-    "hot_cache_current.json",
-    "hot_cache_one_brain_pr48.json",
-    "warm_8slot_latest.json",
-}
-
-
-def _forbidden(name: str) -> bool:
-    if name in _PROTECT:
-        return True
-    if name.startswith("hot_cache_") and name.endswith(".json"):
-        return True
-    return False
-
-
 _stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
 OUT = _args.out or str(_RES / ("warm_8slot_%s.json" % _stamp))
-if _forbidden(os.path.basename(OUT)):
+if is_protected(_Path(OUT)):
     raise SystemExit("refuse: would overwrite protected receipt %s" % OUT)
 
 BASE = "http://127.0.0.1:8000"
@@ -73,7 +57,7 @@ R = {"started": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "salt": SALT, "phases": {}
                "dual-head gated --dual-head" if DUAL_HEAD else "dual-head off"]}
 
 def save():
-    if _forbidden(os.path.basename(OUT)):
+    if is_protected(_Path(OUT)):
         raise RuntimeError("refuse: protected receipt %s" % OUT)
     with open(OUT, "w") as f:
         json.dump(R, f, indent=1)
@@ -430,8 +414,8 @@ for ph in PHASE_ARGS or ["W1", "W2"]:
         if qc.is_file() and ORCH.get("orch-A"):
             prefix_path = _RES / ("_canary_prefix_%s.txt" % SALT)
             prefix_path.write_text(ORCH["orch-A"], encoding="utf-8")
-            qc_out = str(_RES / "quality_canary.json")
-            if os.path.basename(qc_out) in _PROTECT:
+            qc_out = str(timestamped("quality_canary"))
+            if is_protected(_Path(qc_out)):
                 raise SystemExit("refuse: quality canary out is protected")
             needle = "NEEDLE-%s" % SALT
             qrc = subprocess.run(

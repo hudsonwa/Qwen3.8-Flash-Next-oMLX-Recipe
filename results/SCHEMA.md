@@ -42,6 +42,19 @@ Hot-cache receipts **also** require `hot_cache_max_size` (string, e.g. `"0"` or 
 `decode_table_issue64.json`. Protocol: [docs/DECODE.md](../docs/DECODE.md).
 Do not mix the two files.
 
+## Append-only
+
+Do not overwrite a committed `results/*.json` that has a `machine` stamp
+unless `--force-replace` **and** a `CHANGELOG.md` note names that file.
+Named protected set (always): 08-31 files, `hot_cache_*.json`,
+`decode_table.json`, `decode_table_issue64.json`, `quality_canary.json`,
+`mtp_on_off.json`, `warm_8slot_results.json`.
+
+Default write is a **timestamped** filename. Optional `*_latest.json`
+pointers are gitignored and not published receipts.
+
+`python3 scripts/receipt_guard.py --self-test` must exit 0.
+
 ## CI
 
 `python3 scripts/check-results.py` must exit 0. Wired in `.github/workflows/lint.yml`.

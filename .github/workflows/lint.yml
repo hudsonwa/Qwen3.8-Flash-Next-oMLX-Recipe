@@ -39,6 +39,9 @@ jobs:
           fi
           echo "warm --out refuse OK"
 
+      - name: Receipt append-only guard
+        run: python3 scripts/receipt_guard.py --self-test
+
       - name: Results schema
         run: python3 scripts/check-results.py
 

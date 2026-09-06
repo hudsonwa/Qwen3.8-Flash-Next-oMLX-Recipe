@@ -16,10 +16,12 @@ generation tok/s: results/decode_table.json   do not compare 8-token dummy walls
 
 ## Machine contract
 
-These numbers are from **one dedicated 128 GB Apple Silicon Mac** (M5 Max-class
-MacBook Pro, macOS 26, **2026-08-31**) unless a newer file is in `results/`.
+These numbers are from **one dedicated 128 GB Apple Silicon Mac** (M5 Max-class,
+macOS 26) unless a newer file is in `results/`. They are **not portable**.
+**No second-machine reproduction exists** in this repo unless you commit one
+(even a 60k fill + `scripts/verify.sh`). Matrix: [docs/HARDWARE.md](docs/HARDWARE.md).
 
-- Metal working-set cap ≈ **107.5 GB**. Planning peak = **102 GB**.
+- Metal working-set cap ≈ **107.5 GB** (not “128 GB RAM”). Planning peak = **102 GB**.
 - Keep ~**100 GB free** on the SSD cache volume (`~/.omlx/ssd-cache`).
 - Do **not** also run a second GPU-heavy app on this machine.
 - Two 252K prefixes may not both stay in the LRU.

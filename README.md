@@ -17,9 +17,11 @@ generation tok/s: results/decode_table.json
 
 These numbers are from **one dedicated 128 GB Apple Silicon Mac** (M5 Max-class,
 macOS 26) unless a newer file is in `results/`. They are **not portable**.
-**Zero independent reproductions** as of [VERSION](VERSION). A second machine
-does not exist in git unless you commit a receipt (even a 60k fill +
-`scripts/verify.sh`). Matrix: [docs/HARDWARE.md](docs/HARDWARE.md).
+**Zero independent reproductions** as of [VERSION](VERSION). The next
+credibility move is **one other 128 GB Mac** running [BOOTSTRAP.md](BOOTSTRAP.md)
++ `bash scripts/verify.sh` + `python3 scripts/quality_canary.py` and a gist or
+PR of stamped JSON. Do not invent that receipt. A second machine does not
+exist in git unless you commit one. Matrix: [docs/HARDWARE.md](docs/HARDWARE.md).
 Scope: [docs/SCOPE.md](docs/SCOPE.md).
 
 - Metal working-set cap ≈ **107.5 GB** (not “128 GB RAM”). Planning peak = **102 GB**.

@@ -7,6 +7,10 @@ This is a **lab notebook**. Receipts welcome. Number-only PRs
 
 The tracker is **public**. Use the Receipt / machine stamp template.
 
+The next credibility move is **one other 128 GB Mac** running BOOTSTRAP.md +
+`scripts/verify.sh` + `scripts/quality_canary.py`, then a gist or PR of
+stamped JSON. Do not invent that receipt.
+
 Include:
 
 - machine stamp (chip, RAM GB, macOS)

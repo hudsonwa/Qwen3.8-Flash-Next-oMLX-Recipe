@@ -39,5 +39,20 @@
       "refuse": false,
       "why": "dual not requested; idle + one 252K is the default path"
     }
-  }
+  },
+  "machine": {
+    "os": "Darwin 25.6.0",
+    "os_version": "26.6.2",
+    "hw_model": "Mac17,7",
+    "cpu": "Apple M5 Max",
+    "ram_gb": 128,
+    "arch": "arm64",
+    "omlx": "0.6.4",
+    "note": "projection-only; not a live battery"
+  },
+  "n": 0,
+  "profile": "projection",
+  "prompt_tokens": null,
+  "pass": true,
+  "fails": []
 }

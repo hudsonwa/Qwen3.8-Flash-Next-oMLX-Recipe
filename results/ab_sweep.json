@@ -1143,5 +1143,6 @@
   "file_mc_during_mc4": 4,
   "restored_launchd_argv_mc": 8,
   "restore_current_gb": 69.0
- }
+ },
+ "profile": "serving"
 }

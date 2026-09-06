@@ -288,5 +288,6 @@
  "profile": "serving",
  "warmup_dropped": true,
  "fails": [],
- "pass": true
+ "pass": true,
+ "hot_cache_max_size": "12GB"
 }

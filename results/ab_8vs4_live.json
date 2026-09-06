@@ -736,5 +736,6 @@
  "restore_peak_gb": 69.0,
  "verify_sh": 0,
  "fails": [],
- "pass": true
+ "pass": true,
+ "profile": "serving"
 }

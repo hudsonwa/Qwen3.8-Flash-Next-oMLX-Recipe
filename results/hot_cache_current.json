@@ -11,5 +11,23 @@
   "chunked_prefill": true,
   "idle_phys_footprint_gb": 69,
   "peak_phys_footprint_gb": 69,
-  "notes": "LaunchAgent argv has no --hot-cache-max-size. settings cache.hot_cache_max_size is \"0\" (disabled). Live process title is omlx-server; argv taken from the LaunchAgent ProgramArguments."
+  "notes": "LaunchAgent argv has no --hot-cache-max-size. settings cache.hot_cache_max_size is \"0\" (disabled). Live process title is omlx-server; argv taken from the LaunchAgent ProgramArguments.",
+  "machine": {
+    "measured_at": "2026-09-06T22:22:00+0800",
+    "os": "Darwin 25.6.0",
+    "os_version": "26.6.2",
+    "hw_model": "Mac17,7",
+    "cpu": "Apple M5 Max",
+    "ram_gb": 128,
+    "arch": "arm64",
+    "omlx": "0.6.4"
+  },
+  "hf_revision": "2615fc0e976e65c2f3b55daca3a948f1cdc5b9f8",
+  "n": 1,
+  "n_note": "snapshot, not a battery; n=1 variant",
+  "profile": "snapshot",
+  "pass": true,
+  "fails": [],
+  "prompt_tokens": null,
+  "hot_cache_max_size": "0"
 }

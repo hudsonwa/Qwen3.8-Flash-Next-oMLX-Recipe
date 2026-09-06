@@ -210,17 +210,25 @@ on the cache volume.
    `kill -TERM $(lsof -tnP -iTCP:8000 -sTCP:LISTEN)` — `omlx serve` spawns a
    child that survives the wrapper.
 
-## Operator rules (measured; no new flags)
+## Operator rules (measured)
 
-These are how you *use* the 8-slot serving default. They are not new
-`omlx` switches. `max_concurrent_requests=8`, `chunked_prefill` on,
-`mtp_enabled` false. A 4-slot run is opt-in burst only (`launchctl bootout`,
-then `omlx serve … --max-concurrent-requests 4`); restore argv **8** after.
+Daily serving: `max_concurrent_requests=8`, `chunked_prefill` on,
+`mtp_enabled` false, hot cache **off** (`hot_cache_max_size: "0"`).
+A 4-slot run is opt-in burst only (`launchctl bootout`, then
+`omlx serve … --max-concurrent-requests 4`); restore argv **8** after.
+
+Hot KV for **one** brain is the one extra flag that measured a win:
+`--hot-cache-max-size 12GB` (not `10%` — `parse_size` rejects it). Same
+frozen ~240k prefix: disk hits **~8.5 s** with hot=0 vs RAM hits
+**~2.45–2.76 s** with 12GB; peak **91 GB**; still one head
+(`results/hot_cache_one_brain.json`). Daily launchd still ships hot=0.
+Do not size the hot tier for two 252K heads.
 
 - **Right-size.** ~60k mean wall **~71 s** vs ~240k mean wall **~285 s**
   (`results/context_scaling.json`). Use the smallest tier that works.
-- **Frozen prefix, user text last.** Hit **~8.3–9.0 s** vs miss **~256 s**
-  (`results/prefix_hit_miss.json`).
+- **Frozen prefix, user text last.** Disk hit **~8.3–9.0 s** vs miss **~256 s**
+  (`results/prefix_hit_miss.json`). RAM hit **~2.45–2.76 s** if you opt in to
+  `--hot-cache-max-size 12GB`.
 - **One 252K head only.** Do not share the fill.
 - **Shorts during a long fill are 4–12 s** (`results/two_lane_latency.json`).
   **OPEN item, not solved.** Do not close it.

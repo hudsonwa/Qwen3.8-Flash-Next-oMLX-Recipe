@@ -84,4 +84,10 @@ stated). Not folklore.
     **24.91 s** (`results/omlx_flash_2way_results.json`), then 1.34 s / 1.31 s.
     Cite 24.91 s when talking about a tick on top of a dual cold fill.
 
+17. **`hot_cache_max_size: "0"` is disk-tier hits (~8.3–9.0 s).** `--hot-cache-max-size 12GB`
+    holds **one** ~240k prefix in RAM (hits **~2.45–2.76 s**, peak **91 GB**,
+    `results/hot_cache_one_brain.json`). `10%` is not a valid size (`parse_size`
+    ValueError). Do not size the hot tier for two 252K heads. Launchd daily
+    argv still omits the flag (hot=0). Soft 96.8 GB still fails the arm.
+
 

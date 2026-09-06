@@ -1,0 +1,51 @@
+name: Receipt / machine stamp
+description: Report a measurement or a fail-closed verify on your Mac
+title: "receipt: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: "Receipts welcome. Number edits without JSON are rejected."
+  - type: input
+    id: machine
+    attributes:
+      label: Machine stamp
+      description: Chip, RAM GB, macOS (no hostname, no user path)
+      placeholder: "Apple M5 Max, 128 GB, macOS 26.6.2"
+    validations:
+      required: true
+  - type: input
+    id: omlx
+    attributes:
+      label: oMLX version
+      placeholder: "0.6.4"
+    validations:
+      required: true
+  - type: input
+    id: hf
+    attributes:
+      label: Hugging Face revision
+      placeholder: "2615fc0e976e65c2f3b55daca3a948f1cdc5b9f8"
+    validations:
+      required: true
+  - type: dropdown
+    id: hot
+    attributes:
+      label: hot-cache size
+      options: ["0", "12GB", "other"]
+    validations:
+      required: true
+  - type: textarea
+    id: verify
+    attributes:
+      label: verify.sh output
+      description: Paste the script output
+    validations:
+      required: true
+  - type: textarea
+    id: json
+    attributes:
+      label: Receipt JSON
+      description: Paste results/*.json or a link. PRs that change numbers without this will be closed.
+    validations:
+      required: true

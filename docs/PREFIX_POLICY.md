@@ -23,3 +23,17 @@ Do not salt production. A unique header salt makes every call a miss.
 Disk vs RAM vs miss walls are **config-specific**. The 8.7 s / 229 s and
 8.3–9.0 s / 256 s cites were measured with the hot tier **off / unset**.
 See [PROFILE.md](PROFILE.md).
+
+## Admission profiles (send-caps, not KV pins)
+
+Optional client send-caps on the **same** engine. No extra model load.
+
+| Client profile | Send-cap |
+|---|---|
+| `flash:planner` | 120k |
+| `flash:worker` | 32k |
+| `flash:chat` | 32k |
+
+These cap what a client is allowed to **send**. They do **not** pin KV, do
+not change advertised `/v1/models` `max_model_len` (still 262144), and do
+not load a second checkpoint. See [PROFILES.md](PROFILES.md).

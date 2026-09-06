@@ -125,7 +125,14 @@ for line in manifest.read_text().splitlines():
         print("FAIL: missing", name)
         bad += 1
         continue
-    h = hashlib.sha256(p.read_bytes()).hexdigest()
+    h = hashlib.sha256()
+    with p.open("rb") as fh:
+        while True:
+            b = fh.read(1024 * 1024)
+            if not b:
+                break
+            h.update(b)
+    h = h.hexdigest()
     if h != digest:
         print("FAIL: SHA256 mismatch", name)
         bad += 1

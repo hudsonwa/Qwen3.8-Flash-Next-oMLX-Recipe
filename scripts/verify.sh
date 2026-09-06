@@ -108,6 +108,42 @@ else
   miss "no pid — skipped this-boot enforcer check"
 fi
 
+# 6. Port owner is the omlx server, not a random listener
+if [ -n "${pid:-}" ]; then
+  comm="$(ps -p "$pid" -o comm= 2>/dev/null | tr -d ' ')"
+  case "$comm" in
+    *omlx*) say "port owner: ${comm} pid ${pid}" ;;
+    *) miss "port :${PORT} owner is '${comm}', want omlx*" ;;
+  esac
+fi
+
+# 7. No second GPU-heavy sibling (omlx/mlx-serve/mtplx besides this pid)
+extras="$(ps -axo pid=,comm= | awk -v keep="${pid:-0}" '
+  $1==keep {next}
+  $2 ~ /omlx-server|mlx-serve|mtplx/ {print $1,$2}
+')"
+if [ -n "$extras" ]; then
+  miss "second GPU hog running: ${extras}"
+else
+  say "no second omlx/mlx-serve/mtplx process"
+fi
+
+# 8. >=100 GB free on the ssd-cache volume
+cache_dir="${OMLX_SSD_CACHE:-$HOME/.omlx/ssd-cache}"
+if [ ! -d "$cache_dir" ]; then
+  miss "ssd-cache dir missing"
+else
+  free_gb="$(df -k "$cache_dir" | /usr/bin/python3 -c 'import sys
+lines=sys.stdin.read().strip().splitlines()
+parts=lines[-1].split()
+print(int(parts[3])//1048576)')"
+  if [ "${free_gb:-0}" -ge 100 ]; then
+    say "ssd-cache free: ${free_gb} GB (>=100)"
+  else
+    miss "ssd-cache free ${free_gb} GB < 100"
+  fi
+fi
+
 if [ "$fails" -gt 0 ]; then
   printf '%s\n' "FAIL: ${fails} check(s) failed — fix before relying on the stack." >&2
   exit 1

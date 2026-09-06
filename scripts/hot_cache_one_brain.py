@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""One-brain hot-KV A/B. Serving. MTP off. mc=8.
+"""One-brain hot-KV A-B-A-B. Serving. MTP off. mc=8.
 
-A = current (hot_cache_max_size 0): one frozen ~240k miss + n=3 hits.
-B = --hot-cache-max-size 12GB (one 252K only). Same prefix bytes; salt on tail.
+A = current (hot_cache_max_size 0). B = --hot-cache-max-size 12GB (one 252K).
+Same frozen prefix bytes; salt on tail only. Order A-B-A-B, >=3 accepted pairs.
 Soft 96.8 GB = abort B and restore launchd. Do not enable a second head.
 """
 from __future__ import annotations
@@ -12,6 +12,7 @@ import json
 import os
 import re
 import signal
+import statistics
 import subprocess
 import sys
 import threading
@@ -36,11 +37,13 @@ MODEL_DIR = Path.home() / "models" / "omlx-qwen38"
 CACHE_DIR = CONF / "ssd-cache"
 PLIST = Path.home() / "Library" / "LaunchAgents" / "com.omlx.flash8slot.plist"
 OUT = ROOT / "results" / "hot_cache_one_brain.json"
+CURRENT_OUT = ROOT / "results" / "hot_cache_current.json"
 SERVE_LOG = CONF / "logs" / "serve-hot12-one-brain.log"
-N = 3
+N_PAIRS = 3
 HOT_SIZE = "12GB"
-DISK_HIT_LO = 8.3
-DISK_HIT_HI = 9.0
+EXACT_MODEL = "qwen38-flash-next-oq4e-mtp"
+RAM_S = 2.0
+SSD_S = 6.0
 
 UNIT = (
     "Linear attention layers process the sequence with constant memory per step, while full "
@@ -129,7 +132,6 @@ def serve_argv_public():
                 if s == "}":
                     break
                 flags.append(s.strip("\t "))
-    # redact user paths
     pub = []
     skip_next = False
     for f in flags:
@@ -141,13 +143,39 @@ def serve_argv_public():
             pub.append(f)
             skip_next = True
             continue
+        if f.startswith("/") or "Users" in f:
+            pub.append("<path>")
+            continue
         pub.append(f)
     return pub
 
 
-def frozen_prompt(approx_tokens: int, tail_salt: str) -> tuple[str, str, str]:
+def ps_argv_public():
+    pid = listen_pid()
+    if not pid:
+        return []
+    out = subprocess.run(["ps", "-p", pid, "-o", "command="], capture_output=True, text=True).stdout
+    toks = out.split()
+    pub = []
+    skip = False
+    for f in toks:
+        if skip:
+            pub.append("<path>")
+            skip = False
+            continue
+        if f in ("--model-dir", "--paged-ssd-cache-dir"):
+            pub.append(f)
+            skip = True
+            continue
+        if f.startswith("/") or "Users" in f:
+            pub.append("<path>")
+            continue
+        pub.append(f)
+    return pub
+
+
+def frozen_prompt(approx_tokens: int, tail_salt: str) -> tuple:
     reps = max(1, approx_tokens // 65)
-    # Unique frozen block vs L2 prefix_hit_miss so arm A is a real miss.
     prefix = (
         "Read carefully. Reply with exactly: DONE\n\n"
         "Frozen-prefix-block hot-one-brain.\n" + UNIT * reps
@@ -345,7 +373,7 @@ def bootstrap():
     return r.returncode == 0 or "already bootstrapped" in (r.stdout + r.stderr).lower()
 
 
-def start_serve_hot(size: str):
+def start_serve(hot_size: str | None):
     SERVE_LOG.parent.mkdir(parents=True, exist_ok=True)
     cmd = [
         str(OMLX), "serve",
@@ -354,15 +382,37 @@ def start_serve_hot(size: str):
         "--port", str(PORT),
         "--max-concurrent-requests", "8",
         "--paged-ssd-cache-dir", str(CACHE_DIR),
-        "--hot-cache-max-size", size,
     ]
-    print("start_serve hot", size, "mc 8", flush=True)
+    flags = ["--max-concurrent-requests", "8"]
+    size = "0" if not hot_size else str(hot_size)
+    if size in ("0", "0GB", "0G"):
+        cmd += ["--hot-cache-max-size", "0"]
+        flags += ["--hot-cache-max-size", "0"]
+        # Keep settings.json in lockstep so a leftover 12GB file does not leak into A.
+        try:
+            p = CONF / "settings.json"
+            d = json.loads(p.read_text())
+            d.setdefault("cache", {})["hot_cache_max_size"] = "0"
+            p.write_text(json.dumps(d, indent=2) + "\n")
+        except OSError:
+            pass
+    else:
+        cmd += ["--hot-cache-max-size", size]
+        flags += ["--hot-cache-max-size", size]
+        try:
+            p = CONF / "settings.json"
+            d = json.loads(p.read_text())
+            d.setdefault("cache", {})["hot_cache_max_size"] = size
+            p.write_text(json.dumps(d, indent=2) + "\n")
+        except OSError:
+            pass
+    print("start_serve hot", hot_size or "0", "mc 8", flush=True)
     logf = open(SERVE_LOG, "ab")
     proc = subprocess.Popen(
         cmd, stdout=logf, stderr=subprocess.STDOUT,
         start_new_session=True,
     )
-    return proc, ["--max-concurrent-requests", "8", "--hot-cache-max-size", size]
+    return proc, flags
 
 
 def restore_settings_serving():
@@ -380,7 +430,7 @@ def restore_settings_serving():
         msd = json.loads(ms.read_text())
         changed = False
         for name, m in (msd.get("models") or {}).items():
-            if "flash" in name.lower():
+            if name == EXACT_MODEL:
                 if m.get("mtp_enabled") is not False:
                     m["mtp_enabled"] = False
                     changed = True
@@ -407,80 +457,153 @@ def run_verify():
     return vsh.returncode
 
 
-def measure_pair(model, prompt, n, abort_soft, label):
-    fails = []
-    idle = footprint_now()
-    miss = stream(model, prompt, 8, abort_soft=abort_soft)
-    miss["label"] = "miss"
-    after_miss = footprint_now()
-    print(
-        "[%s] first" % label, miss.get("wall_s"), "cached", miss.get("cached_tokens"),
-        "pt", miss.get("prompt_tokens"), "peak", after_miss.get("peak_gb"),
-        flush=True,
-    )
-    if miss.get("error"):
-        fails.append("%s first error %s" % (label, miss["error"]))
-    peak_seen = after_miss.get("peak_gb") or miss.get("poll_peak_gb") or 0.0
-    if peak_seen > SOFT_GB:
-        fails.append("%s peak_gb %s > 96.8" % (label, peak_seen))
-        return {
-            "label": label,
-            "idle_gb": idle.get("current_gb"),
-            "after_first_gb": after_miss.get("current_gb"),
-            "peak_gb": peak_seen,
-            "miss": miss,
-            "hits": [],
-            "after_hit_gb": after_miss.get("current_gb"),
-            "fails": fails,
-            "aborted": True,
-        }
+def classify_hit(ttft):
+    if ttft is None:
+        return "unknown"
+    if ttft < RAM_S:
+        return "RAM"
+    if ttft > SSD_S:
+        return "still_SSD"
+    return "inconclusive"
 
-    hits = []
-    for i in range(n):
-        hit = stream(model, prompt, 8, abort_soft=abort_soft)
-        hit["label"] = "hit"
-        fp = footprint_now()
-        pg = fp.get("peak_gb") or 0
-        peak_seen = max(peak_seen, pg, hit.get("poll_peak_gb") or 0)
-        if hit.get("error"):
-            fails.append("%s hit %s error %s" % (label, i, hit["error"]))
-        if pg > SOFT_GB:
-            fails.append("%s hit %s peak_gb %s > 96.8" % (label, i, pg))
-            hits.append({"i": i, "hit": hit, "footprint": fp})
-            break
-        hits.append({"i": i, "hit": hit, "footprint": fp})
-        print(
-            "[%s] hit" % label, i, hit.get("wall_s"), "cached", hit.get("cached_tokens"),
-            "peak", pg, flush=True,
-        )
 
-    after_hit = footprint_now()
+def thermal_snapshot():
     return {
-        "label": label,
-        "idle_gb": idle.get("current_gb"),
-        "after_first_gb": after_miss.get("current_gb"),
-        "after_hit_gb": after_hit.get("current_gb"),
-        "peak_gb": peak_seen,
-        "miss": miss,
-        "hits": hits,
-        "fails": fails,
-        "aborted": False,
-        "file_hot": file_hot(),
-        "file_mc": file_mc(),
+        "chassis_c": None,
+        "gpu_c": None,
+        "note": "record only; powermetrics needs root on this box; not a fail gate",
     }
 
 
-def arm_success(arm):
-    if not arm or arm.get("aborted") or not arm.get("hits"):
+def throttle_events():
+    n = 0
+    for p in (SERVE_LOG, CONF / "logs" / "launchd-flash.log"):
+        try:
+            t = p.read_text(errors="replace")
+        except OSError:
+            continue
+        low = t.lower()
+        n += low.count("throttl")
+        n += low.count("admission_paused")
+    return n
+
+
+def hot_is_large(val) -> bool:
+    if val is None:
         return False
-    if (arm.get("peak_gb") or 0) > SOFT_GB:
+    s = str(val).strip().upper()
+    if s in ("0", "0GB", "0G", "OFF", "FALSE", "", "NONE"):
         return False
-    walls = [h["hit"].get("wall_s") for h in arm["hits"] if h["hit"].get("wall_s") is not None]
-    if len(walls) < N:
+    if s.endswith("%"):
         return False
-    mean = sum(walls) / len(walls)
-    # clearly faster than measured disk-hit band 8.3–9.0 s
-    return mean < DISK_HIT_LO - 1.0
+    gb = parse_gb(s)
+    return gb is not None and gb >= 8.0
+
+
+def write_current(extra=None):
+    stamp = machine_stamp()
+    argv = serve_argv_public() or ps_argv_public()
+    hot = file_hot()
+    fp = footprint_now()
+    payload = {
+        "measured_at": stamp.get("measured_at"),
+        "omlx": stamp.get("omlx"),
+        "settings_hot_cache_max_size": str(hot) if hot is not None else None,
+        "hot_cache_disabled": str(hot) in ("0", "0GB", "0G", None, "None"),
+        "hot_cache_write_through": False,
+        "serve_command": "omlx serve --model-dir <model-dir> --host <host> --port 8000 --max-concurrent-requests 8 --paged-ssd-cache-dir <ssd-cache>",
+        "serve_argv_public": argv,
+        "serve_argv_has_hot_cache_flag": any("hot-cache" in str(x) for x in argv),
+        "launchd_label": LABEL,
+        "live_mc": file_mc(),
+        "chunked_prefill": True,
+        "idle_phys_footprint_gb": fp.get("current_gb"),
+        "peak_phys_footprint_gb": fp.get("peak_gb"),
+        "notes": "Live argv redacted to public flags. hot=0 means the tiering hypothesis is still testable.",
+        "machine": stamp,
+        "hf_revision": hf_revision(),
+        "n": 1,
+        "n_note": "snapshot, not a battery; n=1 variant",
+        "profile": "snapshot",
+        "pass": True,
+        "fails": [],
+        "prompt_tokens": None,
+        "hot_cache_max_size": str(hot) if hot is not None else "0",
+    }
+    if extra:
+        payload.update(extra)
+    CURRENT_OUT.write_text(json.dumps(payload, indent=2) + "\n")
+    print("WROTE", CURRENT_OUT, "hot", hot, flush=True)
+    return payload
+
+
+def switch_serve(hot_size, served):
+    if served is not None and served.poll() is None:
+        try:
+            served.terminate()
+        except OSError:
+            pass
+        time.sleep(1)
+    kill_port()
+    time.sleep(1)
+    proc, flags = start_serve(hot_size)
+    if not wait_up(timeout=240, min_gb=60.0):
+        raise RuntimeError("FAIL: serve hot=%s did not reach loaded 60 GB" % hot_size)
+    return proc, flags
+
+
+def one_hit(model, prompt, arm, accepted_ttfts, abort_soft):
+    """One accepted hit. Sample >4x hit-median is a miss contaminant; retry once.
+    Do not apply 4x to ~250 s fills (miss arm)."""
+    attempts = []
+    median = statistics.median(accepted_ttfts) if len(accepted_ttfts) >= 2 else None
+    for attempt in range(2):
+        sample = stream(model, prompt, 8, abort_soft=abort_soft)
+        sample["arm"] = arm
+        sample["attempt"] = attempt
+        sample["tier"] = classify_hit(sample.get("ttft_s"))
+        sample["thermal"] = thermal_snapshot()
+        sample["throttle_events"] = throttle_events()
+        attempts.append(sample)
+        tt = sample.get("ttft_s")
+        print("[%s] hit attempt" % arm, attempt, "ttft", tt, "cached", sample.get("cached_tokens"),
+              "tier", sample.get("tier"), "peak", sample.get("poll_peak_gb"), flush=True)
+        if sample.get("error"):
+            continue
+        if median is not None and tt is not None and tt > 4.0 * median:
+            sample["contaminant"] = True
+            print("[%s] stall contaminant ttft %s > 4x median %s; retry=%s" % (
+                arm, tt, median, attempt == 0), flush=True)
+            continue
+        sample["contaminant"] = False
+        return sample, attempts
+    last = attempts[-1]
+    last["contaminant"] = last.get("contaminant", True)
+    return last, attempts
+
+
+HITS_PER_ARM = 3
+
+
+def arm_hits(model, prompt, arm, accepted_ttfts, abort_soft):
+    """n hits after this boot. First sample after a restart may be SSD promote."""
+    hits = []
+    attempts_all = []
+    for i in range(HITS_PER_ARM):
+        sample, attempts = one_hit(model, prompt, arm, accepted_ttfts, abort_soft)
+        attempts_all.extend(attempts)
+        hits.append(sample)
+        if sample.get("ttft_s") is not None and not sample.get("contaminant"):
+            accepted_ttfts.append(sample["ttft_s"])
+    good = [h.get("ttft_s") for h in hits if h.get("ttft_s") is not None and not h.get("contaminant")]
+    med = statistics.median(good) if good else None
+    return {
+        "hits": hits,
+        "attempts": attempts_all,
+        "median_ttft_s": med,
+        "tier": classify_hit(med) if med is not None else "unknown",
+        "n": len(good),
+    }
 
 
 def main() -> int:
@@ -489,17 +612,29 @@ def main() -> int:
     fails = []
     served = None
     restored = False
-    verify_b = None
     verify_restore = None
-    arm_a = None
-    arm_b = None
     b_started = False
     original_hot = file_hot()
     prefix_sha = None
+    miss = None
+    pairs = []
+    peak_seen = 0.0
+    idle0 = footprint_now()
+
+    current = write_current()
+    if hot_is_large(current.get("hot_cache_max_size")) or hot_is_large(original_hot):
+        print("STOP: hot cache already large; tiering hypothesis dead", flush=True)
+        return 0
+
     try:
+        print("idle", idle0, "file_hot", original_hot, "argv", current.get("serve_argv_public"), flush=True)
+
+        bootout()
+        b_started = True
+        served, flags_a = start_serve("0")
+        if not wait_up(timeout=240, min_gb=60.0):
+            raise RuntimeError("FAIL: A serve did not reach loaded 60 GB")
         model = resolve()
-        idle0 = footprint_now()
-        print("idle", idle0, "file_hot", original_hot, "argv", serve_argv_public(), flush=True)
         wu = stream(model, "Reply with the single word: READY\n[variant warmup-hot1]", 8)
         print("warmup dropped", wu.get("wall_s"), flush=True)
 
@@ -509,38 +644,88 @@ def main() -> int:
         if prefix + tail != prompt:
             fails.append("prefix+tail != prompt")
 
-        arm_a = measure_pair(model, prompt, N, abort_soft=False, label="A_hot0")
-        fails.extend(arm_a.get("fails") or [])
-        if (arm_a.get("miss") or {}).get("cached_tokens"):
-            fails.append("A first request cached_tokens %s want 0 (not a miss)" %
-                         arm_a["miss"].get("cached_tokens"))
-        aw = (arm_a.get("miss") or {}).get("wall_s") or 0
-        if aw < 150:
-            fails.append("A first wall %s not ~229s miss class" % aw)
-        if (arm_a.get("peak_gb") or 0) > SOFT_GB:
-            raise RuntimeError("A already over soft 96.8 — skip B")
-
-        b_started = True
-        bootout()
-        served, flags = start_serve_hot(HOT_SIZE)
-        if not wait_up(timeout=240, min_gb=60.0):
-            raise RuntimeError("FAIL: hot-12GB serve did not reach loaded 60 GB")
-        verify_b = run_verify()
-        print("verify.sh after B boot rc", verify_b, flush=True)
-        if verify_b != 0:
-            raise RuntimeError("verify.sh failed after B restart rc %s" % verify_b)
-        if file_mc() != 8:
-            fails.append("B file_mc %s want 8" % file_mc())
-        arm_b = measure_pair(model, prompt, N, abort_soft=True, label="B_hot12")
-        fails.extend(arm_b.get("fails") or [])
-        if arm_b.get("aborted") or (arm_b.get("peak_gb") or 0) > SOFT_GB:
-            fails.append("B aborted or peak > 96.8 — revert")
-            arm_b["win"] = False
+        first = stream(model, prompt, 8, abort_soft=False)
+        first["thermal"] = thermal_snapshot()
+        first["throttle_events"] = throttle_events()
+        after_first = footprint_now()
+        peak_seen = max(peak_seen, after_first.get("peak_gb") or 0, first.get("poll_peak_gb") or 0)
+        print("[A] first", first.get("ttft_s"), "cached", first.get("cached_tokens"),
+              "pt", first.get("prompt_tokens"), "peak", peak_seen, flush=True)
+        if first.get("error"):
+            fails.append("first error %s" % first["error"])
+        if first.get("cached_tokens"):
+            first["label"] = "prefix_already_resident"
+            first["tier"] = classify_hit(first.get("ttft_s"))
+            print("note: frozen prefix already on SSD; not a 240k cold miss", flush=True)
         else:
-            arm_b["serve_flags_public"] = flags
-            arm_b["win"] = arm_success(arm_b)
-            # still one head: only this single stream ran
-            arm_b["heads"] = 1
+            first["label"] = "miss"
+            first["tier"] = "miss"
+            if (first.get("ttft_s") or 0) < 150:
+                fails.append("A miss ttft %s not ~229s class" % first.get("ttft_s"))
+        miss = first
+        if peak_seen > SOFT_GB:
+            raise RuntimeError("first already over soft 96.8 — skip B")
+
+        accepted_a = []
+        accepted_b = []
+        order = []
+        flags_b = ["--max-concurrent-requests", "8", "--hot-cache-max-size", HOT_SIZE]
+        # A-B-A-B ... until N_PAIRS accepted pairs. Pair 0 A stays on this boot.
+        for i in range(N_PAIRS):
+            if i > 0:
+                served, flags_a = switch_serve("0", served)
+            fp_idle_a = footprint_now()
+            arm_a = arm_hits(model, prompt, "A", accepted_a, abort_soft=False)
+            fp_a = footprint_now()
+            peak_seen = max(peak_seen, fp_a.get("peak_gb") or 0)
+            peak_seen = max(peak_seen, max((h.get("poll_peak_gb") or 0) for h in arm_a["hits"]) if arm_a["hits"] else 0)
+            if peak_seen > SOFT_GB:
+                raise RuntimeError("A peak %s > 96.8" % peak_seen)
+            order.append("A")
+
+            served, flags_b = switch_serve(HOT_SIZE, served)
+            fp_idle_b = footprint_now()
+            arm_b = arm_hits(model, prompt, "B", accepted_b, abort_soft=True)
+            fp_b = footprint_now()
+            peak_seen = max(peak_seen, fp_b.get("peak_gb") or 0)
+            peak_seen = max(peak_seen, max((h.get("poll_peak_gb") or 0) for h in arm_b["hits"]) if arm_b["hits"] else 0)
+            if peak_seen > SOFT_GB:
+                raise RuntimeError("B peak %s > 96.8 — abort B" % peak_seen)
+            order.append("B")
+
+            pair_ok = arm_a.get("n", 0) >= HITS_PER_ARM and arm_b.get("n", 0) >= HITS_PER_ARM
+            ratio = None
+            if arm_a.get("median_ttft_s") and arm_b.get("median_ttft_s"):
+                ratio = round(arm_a["median_ttft_s"] / arm_b["median_ttft_s"], 4)
+            pairs.append({
+                "i": i,
+                "accepted": pair_ok,
+                "ratio_a_over_b": ratio,
+                "A": {
+                    "idle_gb": fp_idle_a.get("current_gb"),
+                    "settle_gb": fp_a.get("current_gb"),
+                    "peak_gb": fp_a.get("peak_gb"),
+                    "median_ttft_s": arm_a.get("median_ttft_s"),
+                    "tier": arm_a.get("tier"),
+                    "hits": arm_a.get("hits"),
+                },
+                "B": {
+                    "idle_gb": fp_idle_b.get("current_gb"),
+                    "settle_gb": fp_b.get("current_gb"),
+                    "peak_gb": fp_b.get("peak_gb"),
+                    "median_ttft_s": arm_b.get("median_ttft_s"),
+                    "tier": arm_b.get("tier"),
+                    "hits": arm_b.get("hits"),
+                    "serve_flags_public": flags_b,
+                },
+            })
+            print("pair", i, "accepted", pair_ok, "ratio", ratio,
+                  "A", arm_a.get("median_ttft_s"), arm_a.get("tier"),
+                  "B", arm_b.get("median_ttft_s"), arm_b.get("tier"), flush=True)
+
+        if sum(1 for p in pairs if p.get("accepted")) < N_PAIRS:
+            fails.append("accepted pairs %s < %s" % (
+                sum(1 for p in pairs if p.get("accepted")), N_PAIRS))
     except Exception as e:
         fails.append("driver: %s" % e)
         print("ERROR", e, flush=True)
@@ -564,40 +749,75 @@ def main() -> int:
             if verify_restore != 0:
                 fails.append("verify.sh after restore rc %s" % verify_restore)
 
-    win = bool(arm_b and arm_b.get("win") and (arm_b.get("peak_gb") or 0) <= SOFT_GB)
-    if win:
-        verdict = "hot 12GB kept one brain in RAM (hits faster than disk 8.3-9.0s); peak<=96.8; one head"
-    elif arm_b and (arm_b.get("peak_gb") or 0) > SOFT_GB:
-        verdict = "left off because peak crossed 96.8"
+    a_hits = [p["A"].get("median_ttft_s") for p in pairs
+              if p.get("accepted") and p["A"].get("median_ttft_s") is not None]
+    b_hits = [p["B"].get("median_ttft_s") for p in pairs
+              if p.get("accepted") and p["B"].get("median_ttft_s") is not None]
+    med_a = statistics.median(a_hits) if a_hits else None
+    med_b = statistics.median(b_hits) if b_hits else None
+    ratio = round(med_a / med_b, 4) if med_a and med_b else None
+    settle_b = None
+    if pairs:
+        settle_b = pairs[-1]["B"].get("settle_gb")
+    settle_a_last = pairs[-1]["A"].get("settle_gb") if pairs else None
+    tier_b = classify_hit(med_b) if med_b is not None else "unknown"
+    faster = bool(med_a and med_b and med_b < med_a * 0.7)
+    settle_moved = bool(settle_b is not None and settle_b >= 76.0)
+    peak_ok = peak_seen <= SOFT_GB
+    negative = bool(settle_b is not None and settle_b >= 76.0 and med_b is not None and med_b > SSD_S)
+    win = bool(settle_moved and faster and peak_ok and not negative and len(b_hits) >= N_PAIRS)
+    if negative:
+        verdict = "NEGATIVE: paid RAM (~78 GB settle) but hit still SSD-class (>6 s). Not a win."
+        win = False
+    elif win and tier_b == "RAM":
+        verdict = "win: settle moved toward ~78 GB, hit <2 s (RAM), peak<=96.8; one head"
+    elif win and tier_b == "inconclusive":
+        verdict = (
+            "speed/settle win but tier INCONCLUSIVE (2-6 s): do not call it RAM. "
+            "peak<=96.8; one head"
+        )
+    elif win:
+        verdict = "win: settle moved and hit clearly faster; peak<=96.8; one head"
     else:
-        verdict = "left off because hit did not improve vs disk 8.3-9.0s (or B did not run)"
-
-    def flatten(arm):
-        if not arm:
-            return [], [], [], []
-        miss = arm.get("miss") or {}
-        hits = arm.get("hits") or []
-        pt = [miss.get("prompt_tokens")] + [h["hit"].get("prompt_tokens") for h in hits]
-        tt = [miss.get("ttft_s")] + [h["hit"].get("ttft_s") for h in hits]
-        ww = [miss.get("wall_s")] + [h["hit"].get("wall_s") for h in hits]
-        cc = [miss.get("cached_tokens")] + [h["hit"].get("cached_tokens") for h in hits]
-        return pt, tt, ww, cc
-
-    pa, ta, wa, ca = flatten(arm_a)
-    pb, tb, wb, cb = flatten(arm_b)
-    peak_seen = max(arm_a.get("peak_gb") or 0 if arm_a else 0,
-                    arm_b.get("peak_gb") or 0 if arm_b else 0)
+        verdict = "no win (need settle ~78, clearly faster hits, peak<=96.8, not still ~9 s)"
 
     payload = {
         "machine": stamp,
         "omlx": stamp.get("omlx"),
         "hf_revision": hf_revision(),
         "peak_gb": peak_seen,
-        "prompt_tokens": pa + pb,
-        "ttft_s": ta + tb,
-        "wall_s": wa + wb,
-        "cached_tokens": ca + cb,
-        "n": N,
+        "prompt_tokens": ([miss.get("prompt_tokens")] if miss else []) + [
+            h.get("prompt_tokens") for p in pairs for h in (p.get("A", {}).get("hits") or [])
+        ] + [
+            h.get("prompt_tokens") for p in pairs for h in (p.get("B", {}).get("hits") or [])
+        ],
+        "ttft_s": ([miss.get("ttft_s")] if miss else []) + [
+            h.get("ttft_s") for p in pairs for h in (p.get("A", {}).get("hits") or [])
+        ] + [
+            h.get("ttft_s") for p in pairs for h in (p.get("B", {}).get("hits") or [])
+        ],
+        "cached_tokens": ([miss.get("cached_tokens")] if miss else []) + [
+            h.get("cached_tokens") for p in pairs for h in (p.get("A", {}).get("hits") or [])
+        ] + [
+            h.get("cached_tokens") for p in pairs for h in (p.get("B", {}).get("hits") or [])
+        ],
+        "n": len([p for p in pairs if p.get("accepted")]),
+        "n_pairs_requested": N_PAIRS,
+        "order": "A-B-A-B",
+        "ratio_median_A_over_B": ratio,
+        "median_hit_ttft_A_s": med_a,
+        "median_hit_ttft_B_s": med_b,
+        "pre_register": {
+            "RAM_s": RAM_S,
+            "still_SSD_s": SSD_S,
+            "inconclusive": "2-6 s",
+            "B_tier": tier_b,
+        },
+        "idle_gb": idle0.get("current_gb"),
+        "settle_gb_A": settle_a_last,
+        "settle_gb_B": settle_b,
+        "throttle_events": throttle_events(),
+        "thermal": thermal_snapshot(),
         "hot_cache_size_chosen": HOT_SIZE,
         "hot_cache_size_why": (
             "12GB is the top of the 10-12GB one-brain budget. "
@@ -607,20 +827,22 @@ def main() -> int:
         "restored_hot_cache_max_size": file_hot(),
         "restored_mc": file_mc(),
         "restored_launchd": restored,
-        "verify_sh_after_b": verify_b,
         "verify_sh_after_restore": verify_restore,
         "heads": 1,
         "mtp": "off",
         "salt_on": "tail",
         "prefix_sha256": prefix_sha,
-        "A": arm_a,
-        "B": arm_b,
+        "miss": miss,
+        "pairs": pairs,
         "win": win,
+        "negative": negative,
         "verdict": verdict,
         "profile": "serving",
         "warmup_dropped": True,
         "fails": fails,
-        "pass": arm_a is not None and restored,
+        "pass": miss is not None and restored,
+        "hot_cache_max_size": HOT_SIZE,
+        "pr48_archive": "results/hot_cache_one_brain_pr48.json",
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(payload, indent=1) + "\n")

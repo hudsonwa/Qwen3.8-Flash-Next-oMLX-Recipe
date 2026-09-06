@@ -219,8 +219,12 @@ not both stay cached. Keep ~100 GB free on the cache volume.
 
 Daily serving: `max_concurrent_requests=8`, `chunked_prefill` on,
 `mtp_enabled` false, hot cache **off**. A 4-slot run is opt-in burst only;
-restore argv **8** after. Optional `--hot-cache-max-size 12GB` is one-head RAM
-residency, not a second orchestrator. Canonical numbers:
+restore argv **8** after. Optional `--hot-cache-max-size 12GB` is one-head
+residency, not a second orchestrator. A-B-A-B on the same frozen prefix
+(`results/hot_cache_one_brain.json`, n=3 pairs): ratio median A/B **0.982**,
+both arms ~2.6 s TTFT (pre-register **inconclusive** 2–6 s — do not call it
+RAM), settle 82 GB, peak 91 GB, **no win**. Daily stays hot=0. #48 archive:
+`results/hot_cache_one_brain_pr48.json`. Canonical numbers:
 [docs/PROFILE.md](docs/PROFILE.md).
 
 - **Right-size.** Smallest tier that works.

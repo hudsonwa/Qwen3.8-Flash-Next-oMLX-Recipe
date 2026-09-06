@@ -1,6 +1,6 @@
 {
  "machine": {
-  "measured_at": "2026-09-06T22:25:47+0800",
+  "measured_at": "2026-09-06T23:43:45+0800",
   "os": "Darwin 25.6.0",
   "os_version": "26.6.2",
   "hw_model": "Mac17,7",
@@ -20,30 +20,53 @@
   240355,
   240355,
   240355,
+  240355,
+  240355,
+  240355,
+  240355,
+  240355,
+  240355,
+  240355,
+  240355,
+  240355,
+  240355,
+  240355,
   240355
  ],
  "ttft_s": [
-  237.8254,
-  8.545,
-  8.4904,
-  8.5223,
-  5.0839,
-  2.7563,
-  2.4482,
-  2.4534
- ],
- "wall_s": [
-  237.8261,
-  8.5478,
-  8.493,
-  8.525,
-  5.0846,
-  2.7571,
-  2.449,
-  2.4542
+  2.5721,
+  2.5217,
+  2.1534,
+  2.1392,
+  5.9885,
+  2.5865,
+  2.4274,
+  6.0551,
+  2.4515,
+  2.8994,
+  5.9906,
+  2.5972,
+  2.4297,
+  6.0424,
+  2.633,
+  2.4445,
+  6.0924,
+  2.6438,
+  2.4489
  ],
  "cached_tokens": [
-  0,
+  239616,
+  239616,
+  239616,
+  239616,
+  239616,
+  239616,
+  239616,
+  239616,
+  239616,
+  239616,
+  239616,
+  239616,
   239616,
   239616,
   239616,
@@ -53,241 +76,625 @@
   239616
  ],
  "n": 3,
+ "n_pairs_requested": 3,
+ "order": "A-B-A-B",
+ "ratio_median_A_over_B": 0.9823,
+ "median_hit_ttft_A_s": 2.5865,
+ "median_hit_ttft_B_s": 2.633,
+ "pre_register": {
+  "RAM_s": 2.0,
+  "still_SSD_s": 6.0,
+  "inconclusive": "2-6 s",
+  "B_tier": "inconclusive"
+ },
+ "idle_gb": 69.0,
+ "settle_gb_A": 82.0,
+ "settle_gb_B": 82.0,
+ "throttle_events": 147,
+ "thermal": {
+  "chassis_c": null,
+  "gpu_c": null,
+  "note": "record only; powermetrics needs root on this box; not a fail gate"
+ },
  "hot_cache_size_chosen": "12GB",
  "hot_cache_size_why": "12GB is the top of the 10-12GB one-brain budget. 10% is not a valid parse_size (ValueError).",
  "original_hot_cache_max_size": "0",
  "restored_hot_cache_max_size": "0",
  "restored_mc": 8,
  "restored_launchd": true,
- "verify_sh_after_b": 0,
  "verify_sh_after_restore": 0,
  "heads": 1,
  "mtp": "off",
  "salt_on": "tail",
  "prefix_sha256": "fe2d954851735fc9249d8fb32c24a26574785ef247f809d0f9f342edd14e7d91",
- "A": {
-  "label": "A_hot0",
-  "idle_gb": 69.0,
-  "after_first_gb": 88.0,
-  "after_hit_gb": 69.0,
-  "peak_gb": 88.0,
-  "miss": {
-   "ttft_s": 237.8254,
-   "wall_s": 237.8261,
-   "prompt_tokens": 240355,
-   "completion_tokens": 1,
-   "cached_tokens": 0,
-   "completion": "DONE",
-   "error": null,
-   "footprint": {
-    "current_gb": 88.0,
-    "peak_gb": 88.0,
-    "pid": "26230"
-   },
-   "poll_peak_gb": 84.0,
-   "poll_current_gb": 81.0,
-   "label": "miss"
+ "miss": {
+  "ttft_s": 2.5721,
+  "wall_s": 2.5729,
+  "prompt_tokens": 240355,
+  "completion_tokens": 1,
+  "cached_tokens": 239616,
+  "completion": "DONE",
+  "error": null,
+  "footprint": {
+   "current_gb": 76.0,
+   "peak_gb": 84.0,
+   "pid": "33008"
   },
-  "hits": [
-   {
-    "i": 0,
-    "hit": {
-     "ttft_s": 8.545,
-     "wall_s": 8.5478,
-     "prompt_tokens": 240355,
-     "completion_tokens": 1,
-     "cached_tokens": 239616,
-     "completion": "DONE",
-     "error": null,
-     "footprint": {
-      "current_gb": 76.0,
-      "peak_gb": 88.0,
-      "pid": "26230"
-     },
-     "poll_peak_gb": 88.0,
-     "poll_current_gb": 78.0,
-     "label": "hit"
-    },
-    "footprint": {
-     "current_gb": 76.0,
-     "peak_gb": 88.0,
-     "pid": "26230"
-    }
-   },
-   {
-    "i": 1,
-    "hit": {
-     "ttft_s": 8.4904,
-     "wall_s": 8.493,
-     "prompt_tokens": 240355,
-     "completion_tokens": 1,
-     "cached_tokens": 239616,
-     "completion": "DONE",
-     "error": null,
-     "footprint": {
-      "current_gb": 76.0,
-      "peak_gb": 88.0,
-      "pid": "26230"
-     },
-     "poll_peak_gb": 88.0,
-     "poll_current_gb": 77.0,
-     "label": "hit"
-    },
-    "footprint": {
-     "current_gb": 76.0,
-     "peak_gb": 88.0,
-     "pid": "26230"
-    }
-   },
-   {
-    "i": 2,
-    "hit": {
-     "ttft_s": 8.5223,
-     "wall_s": 8.525,
-     "prompt_tokens": 240355,
-     "completion_tokens": 1,
-     "cached_tokens": 239616,
-     "completion": "DONE",
-     "error": null,
-     "footprint": {
-      "current_gb": 76.0,
-      "peak_gb": 88.0,
-      "pid": "26230"
-     },
-     "poll_peak_gb": 88.0,
-     "poll_current_gb": 76.0,
-     "label": "hit"
-    },
-    "footprint": {
-     "current_gb": 76.0,
-     "peak_gb": 88.0,
-     "pid": "26230"
-    }
-   }
-  ],
-  "fails": [],
-  "aborted": false,
-  "file_hot": "0",
-  "file_mc": 8
+  "poll_peak_gb": 84.0,
+  "poll_current_gb": 83.0,
+  "thermal": {
+   "chassis_c": null,
+   "gpu_c": null,
+   "note": "record only; powermetrics needs root on this box; not a fail gate"
+  },
+  "throttle_events": 147,
+  "label": "prefix_already_resident",
+  "tier": "inconclusive"
  },
- "B": {
-  "label": "B_hot12",
-  "idle_gb": 69.0,
-  "after_first_gb": 82.0,
-  "after_hit_gb": 76.0,
-  "peak_gb": 91.0,
-  "miss": {
-   "ttft_s": 5.0839,
-   "wall_s": 5.0846,
-   "prompt_tokens": 240355,
-   "completion_tokens": 1,
-   "cached_tokens": 239616,
-   "completion": "DONE",
-   "error": null,
-   "footprint": {
-    "current_gb": 82.0,
+ "pairs": [
+  {
+   "i": 0,
+   "accepted": true,
+   "ratio_a_over_b": 0.8291,
+   "A": {
+    "idle_gb": 69.0,
+    "settle_gb": 76.0,
+    "peak_gb": 84.0,
+    "median_ttft_s": 2.1534,
+    "tier": "inconclusive",
+    "hits": [
+     {
+      "ttft_s": 2.5217,
+      "wall_s": 2.5226,
+      "prompt_tokens": 240355,
+      "completion_tokens": 1,
+      "cached_tokens": 239616,
+      "completion": "DONE",
+      "error": null,
+      "footprint": {
+       "current_gb": 76.0,
+       "peak_gb": 84.0,
+       "pid": "33008"
+      },
+      "poll_peak_gb": 84.0,
+      "poll_current_gb": 84.0,
+      "arm": "A",
+      "attempt": 0,
+      "tier": "inconclusive",
+      "thermal": {
+       "chassis_c": null,
+       "gpu_c": null,
+       "note": "record only; powermetrics needs root on this box; not a fail gate"
+      },
+      "throttle_events": 147,
+      "contaminant": false
+     },
+     {
+      "ttft_s": 2.1534,
+      "wall_s": 2.1542,
+      "prompt_tokens": 240355,
+      "completion_tokens": 1,
+      "cached_tokens": 239616,
+      "completion": "DONE",
+      "error": null,
+      "footprint": {
+       "current_gb": 76.0,
+       "peak_gb": 84.0,
+       "pid": "33008"
+      },
+      "poll_peak_gb": 84.0,
+      "poll_current_gb": 76.0,
+      "arm": "A",
+      "attempt": 0,
+      "tier": "inconclusive",
+      "thermal": {
+       "chassis_c": null,
+       "gpu_c": null,
+       "note": "record only; powermetrics needs root on this box; not a fail gate"
+      },
+      "throttle_events": 147,
+      "contaminant": false
+     },
+     {
+      "ttft_s": 2.1392,
+      "wall_s": 2.14,
+      "prompt_tokens": 240355,
+      "completion_tokens": 1,
+      "cached_tokens": 239616,
+      "completion": "DONE",
+      "error": null,
+      "footprint": {
+       "current_gb": 76.0,
+       "peak_gb": 84.0,
+       "pid": "33008"
+      },
+      "poll_peak_gb": 84.0,
+      "poll_current_gb": 76.0,
+      "arm": "A",
+      "attempt": 0,
+      "tier": "inconclusive",
+      "thermal": {
+       "chassis_c": null,
+       "gpu_c": null,
+       "note": "record only; powermetrics needs root on this box; not a fail gate"
+      },
+      "throttle_events": 147,
+      "contaminant": false
+     }
+    ]
+   },
+   "B": {
+    "idle_gb": 68.0,
+    "settle_gb": 82.0,
     "peak_gb": 91.0,
-    "pid": "31457"
-   },
-   "poll_peak_gb": 90.0,
-   "poll_current_gb": 88.0,
-   "label": "miss"
-  },
-  "hits": [
-   {
-    "i": 0,
-    "hit": {
-     "ttft_s": 2.7563,
-     "wall_s": 2.7571,
-     "prompt_tokens": 240355,
-     "completion_tokens": 1,
-     "cached_tokens": 239616,
-     "completion": "DONE",
-     "error": null,
-     "footprint": {
-      "current_gb": 83.0,
-      "peak_gb": 91.0,
-      "pid": "31457"
+    "median_ttft_s": 2.5972,
+    "tier": "inconclusive",
+    "hits": [
+     {
+      "ttft_s": 5.9906,
+      "wall_s": 5.9914,
+      "prompt_tokens": 240355,
+      "completion_tokens": 1,
+      "cached_tokens": 239616,
+      "completion": "DONE",
+      "error": null,
+      "footprint": {
+       "current_gb": 82.0,
+       "peak_gb": 91.0,
+       "pid": "33116"
+      },
+      "poll_peak_gb": 81.0,
+      "poll_current_gb": 81.0,
+      "arm": "B",
+      "attempt": 0,
+      "tier": "inconclusive",
+      "thermal": {
+       "chassis_c": null,
+       "gpu_c": null,
+       "note": "record only; powermetrics needs root on this box; not a fail gate"
+      },
+      "throttle_events": 147,
+      "contaminant": false
      },
-     "poll_peak_gb": 91.0,
-     "poll_current_gb": 89.0,
-     "label": "hit"
-    },
-    "footprint": {
-     "current_gb": 83.0,
-     "peak_gb": 91.0,
-     "pid": "31457"
-    }
-   },
-   {
-    "i": 1,
-    "hit": {
-     "ttft_s": 2.4482,
-     "wall_s": 2.449,
-     "prompt_tokens": 240355,
-     "completion_tokens": 1,
-     "cached_tokens": 239616,
-     "completion": "DONE",
-     "error": null,
-     "footprint": {
-      "current_gb": 83.0,
-      "peak_gb": 91.0,
-      "pid": "31457"
+     {
+      "ttft_s": 2.5972,
+      "wall_s": 2.598,
+      "prompt_tokens": 240355,
+      "completion_tokens": 1,
+      "cached_tokens": 239616,
+      "completion": "DONE",
+      "error": null,
+      "footprint": {
+       "current_gb": 82.0,
+       "peak_gb": 91.0,
+       "pid": "33116"
+      },
+      "poll_peak_gb": 91.0,
+      "poll_current_gb": 91.0,
+      "arm": "B",
+      "attempt": 0,
+      "tier": "inconclusive",
+      "thermal": {
+       "chassis_c": null,
+       "gpu_c": null,
+       "note": "record only; powermetrics needs root on this box; not a fail gate"
+      },
+      "throttle_events": 147,
+      "contaminant": false
      },
-     "poll_peak_gb": 91.0,
-     "poll_current_gb": 84.0,
-     "label": "hit"
-    },
-    "footprint": {
-     "current_gb": 83.0,
-     "peak_gb": 91.0,
-     "pid": "31457"
-    }
-   },
-   {
-    "i": 2,
-    "hit": {
-     "ttft_s": 2.4534,
-     "wall_s": 2.4542,
-     "prompt_tokens": 240355,
-     "completion_tokens": 1,
-     "cached_tokens": 239616,
-     "completion": "DONE",
-     "error": null,
-     "footprint": {
-      "current_gb": 83.0,
-      "peak_gb": 91.0,
-      "pid": "31457"
-     },
-     "poll_peak_gb": 91.0,
-     "poll_current_gb": 83.0,
-     "label": "hit"
-    },
-    "footprint": {
-     "current_gb": 83.0,
-     "peak_gb": 91.0,
-     "pid": "31457"
-    }
+     {
+      "ttft_s": 2.4297,
+      "wall_s": 2.4305,
+      "prompt_tokens": 240355,
+      "completion_tokens": 1,
+      "cached_tokens": 239616,
+      "completion": "DONE",
+      "error": null,
+      "footprint": {
+       "current_gb": 82.0,
+       "peak_gb": 91.0,
+       "pid": "33116"
+      },
+      "poll_peak_gb": 91.0,
+      "poll_current_gb": 82.0,
+      "arm": "B",
+      "attempt": 0,
+      "tier": "inconclusive",
+      "thermal": {
+       "chassis_c": null,
+       "gpu_c": null,
+       "note": "record only; powermetrics needs root on this box; not a fail gate"
+      },
+      "throttle_events": 147,
+      "contaminant": false
+     }
+    ],
+    "serve_flags_public": [
+     "--max-concurrent-requests",
+     "8",
+     "--hot-cache-max-size",
+     "12GB"
+    ]
    }
-  ],
-  "fails": [],
-  "aborted": false,
-  "file_hot": "12GB",
-  "file_mc": 8,
-  "serve_flags_public": [
-   "--max-concurrent-requests",
-   "8",
-   "--hot-cache-max-size",
-   "12GB"
-  ],
-  "win": true,
-  "heads": 1
- },
- "win": true,
- "verdict": "hot 12GB kept one brain in RAM (hits faster than disk 8.3-9.0s); peak<=96.8; one head",
+  },
+  {
+   "i": 1,
+   "accepted": true,
+   "ratio_a_over_b": 0.9823,
+   "A": {
+    "idle_gb": 68.0,
+    "settle_gb": 82.0,
+    "peak_gb": 91.0,
+    "median_ttft_s": 2.5865,
+    "tier": "inconclusive",
+    "hits": [
+     {
+      "ttft_s": 5.9885,
+      "wall_s": 5.9893,
+      "prompt_tokens": 240355,
+      "completion_tokens": 1,
+      "cached_tokens": 239616,
+      "completion": "DONE",
+      "error": null,
+      "footprint": {
+       "current_gb": 82.0,
+       "peak_gb": 91.0,
+       "pid": "33190"
+      },
+      "poll_peak_gb": 81.0,
+      "poll_current_gb": 81.0,
+      "arm": "A",
+      "attempt": 0,
+      "tier": "inconclusive",
+      "thermal": {
+       "chassis_c": null,
+       "gpu_c": null,
+       "note": "record only; powermetrics needs root on this box; not a fail gate"
+      },
+      "throttle_events": 147,
+      "contaminant": false
+     },
+     {
+      "ttft_s": 2.5865,
+      "wall_s": 2.5873,
+      "prompt_tokens": 240355,
+      "completion_tokens": 1,
+      "cached_tokens": 239616,
+      "completion": "DONE",
+      "error": null,
+      "footprint": {
+       "current_gb": 82.0,
+       "peak_gb": 91.0,
+       "pid": "33190"
+      },
+      "poll_peak_gb": 91.0,
+      "poll_current_gb": 91.0,
+      "arm": "A",
+      "attempt": 0,
+      "tier": "inconclusive",
+      "thermal": {
+       "chassis_c": null,
+       "gpu_c": null,
+       "note": "record only; powermetrics needs root on this box; not a fail gate"
+      },
+      "throttle_events": 147,
+      "contaminant": false
+     },
+     {
+      "ttft_s": 2.4274,
+      "wall_s": 2.4281,
+      "prompt_tokens": 240355,
+      "completion_tokens": 1,
+      "cached_tokens": 239616,
+      "completion": "DONE",
+      "error": null,
+      "footprint": {
+       "current_gb": 82.0,
+       "peak_gb": 91.0,
+       "pid": "33190"
+      },
+      "poll_peak_gb": 91.0,
+      "poll_current_gb": 82.0,
+      "arm": "A",
+      "attempt": 0,
+      "tier": "inconclusive",
+      "thermal": {
+       "chassis_c": null,
+       "gpu_c": null,
+       "note": "record only; powermetrics needs root on this box; not a fail gate"
+      },
+      "throttle_events": 147,
+      "contaminant": false
+     }
+    ]
+   },
+   "B": {
+    "idle_gb": 68.0,
+    "settle_gb": 82.0,
+    "peak_gb": 91.0,
+    "median_ttft_s": 2.633,
+    "tier": "inconclusive",
+    "hits": [
+     {
+      "ttft_s": 6.0424,
+      "wall_s": 6.0432,
+      "prompt_tokens": 240355,
+      "completion_tokens": 1,
+      "cached_tokens": 239616,
+      "completion": "DONE",
+      "error": null,
+      "footprint": {
+       "current_gb": 82.0,
+       "peak_gb": 91.0,
+       "pid": "33265"
+      },
+      "poll_peak_gb": 81.0,
+      "poll_current_gb": 81.0,
+      "arm": "B",
+      "attempt": 0,
+      "tier": "still_SSD",
+      "thermal": {
+       "chassis_c": null,
+       "gpu_c": null,
+       "note": "record only; powermetrics needs root on this box; not a fail gate"
+      },
+      "throttle_events": 147,
+      "contaminant": false
+     },
+     {
+      "ttft_s": 2.633,
+      "wall_s": 2.6338,
+      "prompt_tokens": 240355,
+      "completion_tokens": 1,
+      "cached_tokens": 239616,
+      "completion": "DONE",
+      "error": null,
+      "footprint": {
+       "current_gb": 82.0,
+       "peak_gb": 91.0,
+       "pid": "33265"
+      },
+      "poll_peak_gb": 91.0,
+      "poll_current_gb": 91.0,
+      "arm": "B",
+      "attempt": 0,
+      "tier": "inconclusive",
+      "thermal": {
+       "chassis_c": null,
+       "gpu_c": null,
+       "note": "record only; powermetrics needs root on this box; not a fail gate"
+      },
+      "throttle_events": 147,
+      "contaminant": false
+     },
+     {
+      "ttft_s": 2.4445,
+      "wall_s": 2.4453,
+      "prompt_tokens": 240355,
+      "completion_tokens": 1,
+      "cached_tokens": 239616,
+      "completion": "DONE",
+      "error": null,
+      "footprint": {
+       "current_gb": 82.0,
+       "peak_gb": 91.0,
+       "pid": "33265"
+      },
+      "poll_peak_gb": 91.0,
+      "poll_current_gb": 82.0,
+      "arm": "B",
+      "attempt": 0,
+      "tier": "inconclusive",
+      "thermal": {
+       "chassis_c": null,
+       "gpu_c": null,
+       "note": "record only; powermetrics needs root on this box; not a fail gate"
+      },
+      "throttle_events": 147,
+      "contaminant": false
+     }
+    ],
+    "serve_flags_public": [
+     "--max-concurrent-requests",
+     "8",
+     "--hot-cache-max-size",
+     "12GB"
+    ]
+   }
+  },
+  {
+   "i": 2,
+   "accepted": true,
+   "ratio_a_over_b": 1.0967,
+   "A": {
+    "idle_gb": 68.0,
+    "settle_gb": 82.0,
+    "peak_gb": 91.0,
+    "median_ttft_s": 2.8994,
+    "tier": "inconclusive",
+    "hits": [
+     {
+      "ttft_s": 6.0551,
+      "wall_s": 6.0559,
+      "prompt_tokens": 240355,
+      "completion_tokens": 1,
+      "cached_tokens": 239616,
+      "completion": "DONE",
+      "error": null,
+      "footprint": {
+       "current_gb": 82.0,
+       "peak_gb": 91.0,
+       "pid": "33345"
+      },
+      "poll_peak_gb": 81.0,
+      "poll_current_gb": 81.0,
+      "arm": "A",
+      "attempt": 0,
+      "tier": "still_SSD",
+      "thermal": {
+       "chassis_c": null,
+       "gpu_c": null,
+       "note": "record only; powermetrics needs root on this box; not a fail gate"
+      },
+      "throttle_events": 147,
+      "contaminant": false
+     },
+     {
+      "ttft_s": 2.4515,
+      "wall_s": 2.4523,
+      "prompt_tokens": 240355,
+      "completion_tokens": 1,
+      "cached_tokens": 239616,
+      "completion": "DONE",
+      "error": null,
+      "footprint": {
+       "current_gb": 82.0,
+       "peak_gb": 91.0,
+       "pid": "33345"
+      },
+      "poll_peak_gb": 91.0,
+      "poll_current_gb": 84.0,
+      "arm": "A",
+      "attempt": 0,
+      "tier": "inconclusive",
+      "thermal": {
+       "chassis_c": null,
+       "gpu_c": null,
+       "note": "record only; powermetrics needs root on this box; not a fail gate"
+      },
+      "throttle_events": 147,
+      "contaminant": false
+     },
+     {
+      "ttft_s": 2.8994,
+      "wall_s": 2.9002,
+      "prompt_tokens": 240355,
+      "completion_tokens": 1,
+      "cached_tokens": 239616,
+      "completion": "DONE",
+      "error": null,
+      "footprint": {
+       "current_gb": 82.0,
+       "peak_gb": 91.0,
+       "pid": "33345"
+      },
+      "poll_peak_gb": 91.0,
+      "poll_current_gb": 88.0,
+      "arm": "A",
+      "attempt": 0,
+      "tier": "inconclusive",
+      "thermal": {
+       "chassis_c": null,
+       "gpu_c": null,
+       "note": "record only; powermetrics needs root on this box; not a fail gate"
+      },
+      "throttle_events": 147,
+      "contaminant": false
+     }
+    ]
+   },
+   "B": {
+    "idle_gb": 68.0,
+    "settle_gb": 82.0,
+    "peak_gb": 91.0,
+    "median_ttft_s": 2.6438,
+    "tier": "inconclusive",
+    "hits": [
+     {
+      "ttft_s": 6.0924,
+      "wall_s": 6.0932,
+      "prompt_tokens": 240355,
+      "completion_tokens": 1,
+      "cached_tokens": 239616,
+      "completion": "DONE",
+      "error": null,
+      "footprint": {
+       "current_gb": 82.0,
+       "peak_gb": 91.0,
+       "pid": "33419"
+      },
+      "poll_peak_gb": 81.0,
+      "poll_current_gb": 81.0,
+      "arm": "B",
+      "attempt": 0,
+      "tier": "still_SSD",
+      "thermal": {
+       "chassis_c": null,
+       "gpu_c": null,
+       "note": "record only; powermetrics needs root on this box; not a fail gate"
+      },
+      "throttle_events": 147,
+      "contaminant": false
+     },
+     {
+      "ttft_s": 2.6438,
+      "wall_s": 2.6447,
+      "prompt_tokens": 240355,
+      "completion_tokens": 1,
+      "cached_tokens": 239616,
+      "completion": "DONE",
+      "error": null,
+      "footprint": {
+       "current_gb": 82.0,
+       "peak_gb": 91.0,
+       "pid": "33419"
+      },
+      "poll_peak_gb": 91.0,
+      "poll_current_gb": 90.0,
+      "arm": "B",
+      "attempt": 0,
+      "tier": "inconclusive",
+      "thermal": {
+       "chassis_c": null,
+       "gpu_c": null,
+       "note": "record only; powermetrics needs root on this box; not a fail gate"
+      },
+      "throttle_events": 147,
+      "contaminant": false
+     },
+     {
+      "ttft_s": 2.4489,
+      "wall_s": 2.4498,
+      "prompt_tokens": 240355,
+      "completion_tokens": 1,
+      "cached_tokens": 239616,
+      "completion": "DONE",
+      "error": null,
+      "footprint": {
+       "current_gb": 82.0,
+       "peak_gb": 91.0,
+       "pid": "33419"
+      },
+      "poll_peak_gb": 91.0,
+      "poll_current_gb": 82.0,
+      "arm": "B",
+      "attempt": 0,
+      "tier": "inconclusive",
+      "thermal": {
+       "chassis_c": null,
+       "gpu_c": null,
+       "note": "record only; powermetrics needs root on this box; not a fail gate"
+      },
+      "throttle_events": 147,
+      "contaminant": false
+     }
+    ],
+    "serve_flags_public": [
+     "--max-concurrent-requests",
+     "8",
+     "--hot-cache-max-size",
+     "12GB"
+    ]
+   }
+  }
+ ],
+ "win": false,
+ "negative": false,
+ "verdict": "no win (need settle ~78, clearly faster hits, peak<=96.8, not still ~9 s)",
  "profile": "serving",
  "warmup_dropped": true,
  "fails": [],
  "pass": true,
- "hot_cache_max_size": "12GB"
+ "hot_cache_max_size": "12GB",
+ "pr48_archive": "results/hot_cache_one_brain_pr48.json"
 }

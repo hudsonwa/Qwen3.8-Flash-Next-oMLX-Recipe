@@ -49,6 +49,9 @@ bash scripts/verify.sh                             # (h) fail-closed
 
 Agents: read [AGENT.md](AGENT.md) first.
 
+CI (`.github/workflows/lint.yml`) is syntax / schema / scrub / self-test.
+It does **not** run oMLX or Metal.
+
 ## Links
 
 | Doc | What |

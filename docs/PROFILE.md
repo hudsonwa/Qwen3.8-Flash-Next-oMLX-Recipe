@@ -14,7 +14,7 @@ Machine stamp (daily / optional rows): Darwin 25.6.0, macOS 26.6.2, Apple M5 Max
 
 Notes locked to those files:
 
-- Default warm path is **one** 252K head + short slots, **hot=0**. Dual only `--dual-head`.
+- Default warm path is **one** 252K head + short slots, **hot=0**, **mc=8**. Dual only `--dual-head`.
 - Old ~8.5 s / ~8.7 s “hit” numbers are **SSD**, not RAM. The 8.7 s / 229 s and
   8.3–9.0 s / 256 s cites were measured with the hot tier **off / unset**; they
   are config-specific (this table).

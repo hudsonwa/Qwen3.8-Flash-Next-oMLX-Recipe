@@ -1,6 +1,7 @@
 # AGENT.md — for AI agents performing this install
 
-You are installing an 8-slot oMLX serving stack on a 128 GB Apple Silicon Mac.
+You are installing an 8-slot oMLX **0.6.4** serving stack on a 128 GB Apple Silicon Mac.
+Daily pins: **hot=0**, **max_concurrent_requests=8**, **MTP off**, HF rev in MODELS.md.
 Read this top to bottom before touching anything.
 
 1. **Trust only measured state.** After every config change, re-verify: `/v1/models`

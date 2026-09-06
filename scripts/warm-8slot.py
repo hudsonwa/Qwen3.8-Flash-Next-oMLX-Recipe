@@ -9,10 +9,17 @@ Server: oMLX 0.6.4 flash-next on :8000, chunked on, MTP off, enforcer 107.5GB.
 
 Do not replace results/warm_8slot_results.json (2026-08-31 dual-head receipt)
 with a failed re-run. L1 writes results/single_head_latency.json instead.
+Writes timestamped results/warm_8slot_<utc>.json only. Never writes #48
+hot-cache JSON.
 
 """
-import json, subprocess, time, threading, urllib.request, statistics
+import json, os, subprocess, time, threading, urllib.request, statistics, shutil
 import sys as _sys
+from pathlib import Path as _Path
+
+_HERE = _Path(__file__).resolve().parent
+_sys.path.insert(0, str(_HERE))
+from resolve_model import resolve as _resolve_model_id  # noqa: E402
 
 DUAL_HEAD = "--dual-head" in _sys.argv
 if DUAL_HEAD:
@@ -24,23 +31,18 @@ if "--help" in _sys.argv or "-h" in _sys.argv:
     raise SystemExit(0)
 
 BASE = "http://127.0.0.1:8000"
-# Same resolver as scripts/verify.sh / scripts/resolve_model.py — do not
-# hardcode a renamed checkpoint.
-def _resolve_model():
-    import os, json, urllib.request
-    fallback = os.environ.get("OMLX_MODEL", "qwen38-flash-next-oq4e-mtp")
-    try:
-        with urllib.request.urlopen(BASE + "/v1/models", timeout=5) as r:
-            ids = [m.get("id") for m in json.load(r).get("data") or [] if m.get("id")]
-        for i in ids:
-            if "flash" in i.lower():
-                return i
-        return ids[0] if ids else fallback
-    except Exception:
-        return fallback
-MODEL = _resolve_model()
-OUT = __import__("os").path.join(__import__("os").path.dirname(__import__("os").path.abspath(__file__)),
-                                 "..", "results", "warm_8slot_results.json")
+os.environ.setdefault("OMLX_REQUIRE_LIVE", "1")
+os.environ.setdefault("OMLX_BASE", BASE + "/v1")
+MODEL = _resolve_model_id()
+_RES = _HERE.parent / "results"
+_PROTECT = {
+    "warm_8slot_results.json",
+    "hot_cache_one_brain.json",
+    "hot_cache_current.json",
+}
+OUT = str(_RES / ("warm_8slot_%s.json" % time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())))
+if os.path.basename(OUT) in _PROTECT:
+    raise SystemExit("refuse: would overwrite protected receipt")
 SALT = time.strftime("%H%M%S")
 
 UNIT = ("Linear attention layers process the sequence with constant memory per step, while full "
@@ -54,6 +56,8 @@ R = {"started": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "salt": SALT, "phases": {}
                "dual-head gated --dual-head" if DUAL_HEAD else "dual-head off"]}
 
 def save():
+    if os.path.basename(OUT) in _PROTECT:
+        raise RuntimeError("refuse: protected receipt %s" % OUT)
     with open(OUT, "w") as f:
         json.dump(R, f, indent=1)
 
@@ -104,6 +108,7 @@ def follow(tag, prompt, salt, out, max_tokens=16, temp=0):
 def stream_chat(tag, messages, out, max_tokens=8, temp=0):
     body = json.dumps({"model": MODEL, "messages": messages,
                        "max_tokens": max_tokens, "temperature": temp,
+                       "chat_template_kwargs": {"enable_thinking": False},
                        "stream": True, "stream_options": {"include_usage": True}}).encode()
     req = urllib.request.Request(f"{BASE}/v1/chat/completions", data=body,
                                  headers={"Content-Type": "application/json"})
@@ -136,9 +141,13 @@ def stream_chat(tag, messages, out, max_tokens=8, temp=0):
     wall = time.perf_counter() - t0
     pt = usage.get("prompt_tokens", 0) if usage else 0
     completion = "".join(text).strip()
+    cached = None
+    if usage:
+        cached = (usage.get("prompt_tokens_details") or {}).get("cached_tokens")
     out[tag] = {"ttft_s": round(first, 3) if first else None, "wall_s": round(wall, 2),
                 "prompt_tokens": pt,
                 "completion_tokens": usage.get("completion_tokens", 0) if usage else 0,
+                "cached_tokens": cached,
                 "completion": completion[:200],
                 "error": err}
     if err:
@@ -305,8 +314,34 @@ def evaluate_gates():
                              % (phase, delta, need))
             if (resid.get("cached_tokens_before") is None or resid.get("cached_tokens_after") is None):
                 fails.append("%s could not read stats.json cached_tokens" % phase)
+            hot = hot_cache_size()
+            R["hot_cache_max_size"] = hot
+            if re_hot12(hot):
+                for tag, fu in (resid.get("followups") or {}).items():
+                    ttft = fu.get("ttft_s")
+                    try:
+                        ttf = float(ttft)
+                    except (TypeError, ValueError):
+                        ttf = None
+                    if ttf is None or not (1.2 <= ttf <= 6.0):
+                        fails.append("%s/%s RAM-hit ttft %s not in 1.2–6.0 s (hot=12GB band)" %
+                                     (phase, tag, ttft))
+                    if not fu.get("cached_tokens"):
+                        fails.append("%s/%s hot-12GB followup missing cached_tokens" % (phase, tag))
     R["gate_fails"] = fails
     return fails
+
+def hot_cache_size():
+    try:
+        with open(os.path.expanduser("~/.omlx/settings.json")) as f:
+            d = json.load(f)
+        return str((d.get("cache") or {}).get("hot_cache_max_size") or "0")
+    except Exception:
+        return "0"
+
+def re_hot12(s):
+    u = str(s).upper().replace(" ", "")
+    return u in ("12GB", "12G", "12884901888") or u.startswith("12G")
 
 def phase_w1():
     global ORCH
@@ -364,6 +399,16 @@ if DUAL_HEAD:
 
 for ph in PHASE_ARGS or ["W1", "W2"]:
     guard(ph, {"W1": phase_w1, "W2": phase_w2}[ph])
+    if ph == "W1":
+        qs = _HERE / "quality_suite.py"
+        rc = subprocess.run([_sys.executable, str(qs)]).returncode
+        R["quality_suite_after_W1"] = rc
+        save()
+        if rc != 0:
+            R["errors"].append("quality_suite.py after W1 rc=%s" % rc)
+            save()
+            print("FAIL: quality_suite after W1 rc=%s" % rc, flush=True)
+            raise SystemExit(1)
 
 R["finished"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
 R["final_footprint"] = footprint()
@@ -374,3 +419,6 @@ print("WROTE", OUT, "| errors:", R["errors"] if R["errors"] else "none",
       "| gate_fails:", fails if fails else "none", flush=True)
 if fails or R["errors"]:
     raise SystemExit(1)
+latest = _RES / "warm_8slot_latest.json"
+shutil.copyfile(OUT, latest)
+print("PROMOTE", latest, flush=True)

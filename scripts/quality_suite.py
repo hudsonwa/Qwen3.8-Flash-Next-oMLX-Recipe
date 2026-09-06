@@ -24,6 +24,7 @@ def chat(model: str, content: str, max_tokens: int = 64) -> str:
         "messages": [{"role": "user", "content": content}],
         "max_tokens": max_tokens,
         "temperature": 0,
+        "chat_template_kwargs": {"enable_thinking": False},
     }).encode()
     req = urllib.request.Request(BASE.rstrip("/") + "/chat/completions",
                                  data=body, headers={"Content-Type": "application/json"})

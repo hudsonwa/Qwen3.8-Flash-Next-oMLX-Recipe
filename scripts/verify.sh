@@ -44,7 +44,13 @@ else:
   if [ -z "$gb" ]; then
     miss "could not parse footprint for pid ${pid} (line: ${fp_line:-empty})"
   else
-    say "phys_footprint: ${gb} GB (idle expectation ~69 GB)"
+    say "phys_footprint: ${gb} GB (idle band 60–80 GB)"
+    /usr/bin/python3 -c '
+import sys
+g=float(sys.argv[1])
+if not (60.0 <= g <= 80.0):
+    sys.exit(1)
+' "$gb" || miss "idle phys_footprint ${gb} GB outside 60–80 GB band"
   fi
 fi
 
@@ -59,11 +65,26 @@ try:
     d=json.load(sys.stdin); print(d["choices"][0]["message"]["content"][:40])
 except Exception: print("")' 2>/dev/null)"
 if [ -n "$gen" ]; then say "live generation: ${gen}"; else miss "live generation returned nothing"; fi
+case "$(printf '%s' "$gen" | tr '[:lower:]' '[:upper:]')" in
+  *READY*) say "live generation contains READY" ;;
+  *) miss "live generation did not contain READY (got ${gen:-empty})" ;;
+esac
 
 # 4. Live chunked_prefill in settings.json
 if [ -f "$HOME/.omlx/settings.json" ]; then
   chunked="$(/usr/bin/python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(str(d.get("scheduler",{}).get("chunked_prefill")).lower())' "$HOME/.omlx/settings.json" 2>/dev/null || echo "")"
   if [ "$chunked" = "true" ]; then say "settings.json chunked_prefill: true"; else miss "chunked_prefill is not true in settings.json (got ${chunked:-empty})"; fi
+  hot="$(/usr/bin/python3 -c 'import json,sys
+d=json.load(open(sys.argv[1]))
+print(str((d.get("cache") or {}).get("hot_cache_max_size") or "0"))' "$HOME/.omlx/settings.json" 2>/dev/null || echo "")"
+  if [ "${OMLX_ALLOW_HOT12:-0}" = "1" ]; then
+    say "hot_cache_max_size=${hot} (OMLX_ALLOW_HOT12=1 variant under test)"
+  else
+    case "$hot" in
+      0|\"0\"|'0') say "hot_cache_max_size: 0 (daily)" ;;
+      *) miss "daily profile requires hot_cache_max_size=0 (got ${hot:-empty}); set OMLX_ALLOW_HOT12=1 for the documented 12GB variant" ;;
+    esac
+  fi
 else
   miss "settings.json missing — cannot confirm chunked_prefill"
 fi
@@ -115,6 +136,13 @@ if [ -n "${pid:-}" ]; then
     *omlx*) say "port owner: ${comm} pid ${pid}" ;;
     *) miss "port :${PORT} owner is '${comm}', want omlx*" ;;
   esac
+  args="$(ps -p "$pid" -ww -o args= 2>/dev/null || true)"
+  if [ "${OMLX_ALLOW_HOT12:-0}" != "1" ]; then
+    case "$args" in
+      *--hot-cache-max-size*) miss "daily argv must not pass --hot-cache-max-size (got a hot flag); OMLX_ALLOW_HOT12=1 for the 12GB variant" ;;
+      *) say "argv has no --hot-cache-max-size" ;;
+    esac
+  fi
 fi
 
 # 7. No second GPU-heavy sibling (omlx/mlx-serve/mtplx besides this pid)

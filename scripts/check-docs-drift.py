@@ -68,6 +68,22 @@ def main() -> int:
     if extra:
         fails.append("HF revision disagreement %s" % sorted(extra))
 
+    ver = load("VERSION").strip()
+    m = re.search(r"(\d+\.\d+\.\d+)", ver)
+    if not m:
+        fails.append("VERSION has no numeric x.y.z (%s)" % ver)
+    else:
+        numeric = m.group(1)
+        cff = load("CITATION.cff")
+        # Recipe version, not cff-version (Citation File Format spec).
+        recipe = None
+        for line in cff.splitlines():
+            if re.match(r"^version:\s*", line) and not line.startswith("cff-version"):
+                recipe = re.sub(r'^version:\s*["\']?([^"\']+)["\']?\s*$', r"\1", line).strip()
+                break
+        if recipe != numeric:
+            fails.append("CITATION.cff version %r != VERSION numeric %r" % (recipe, numeric))
+
     if fails:
         for f in fails:
             print("FAIL:", f, file=sys.stderr)

@@ -3,6 +3,7 @@ title: Qwen3.8 Flash-Next oMLX 8-slot recipe
 message: If you use this recipe, please cite it and upstream oMLX / Qwen.
 type: software
 license: MIT
+version: 1.2.1
 repository-code: "https://github.com/hudsonwa/Qwen3.8-Flash-Next-oMLX-Recipe"
 authors:
   - name: "GitHub owner of this repository"

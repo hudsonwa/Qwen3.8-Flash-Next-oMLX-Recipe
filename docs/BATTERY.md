@@ -22,10 +22,12 @@ Numbers: [PROFILE.md](PROFILE.md) (locked to `results/*.json`).
 
 Architecture: Qwen3.8 **27B dense**, not Flash-Next. Same machine, oMLX 0.6.4.
 
-| Condition | Result |
-|---|---|
-| chunked **off** (4×118K simultaneous) | walls 304 / 1225 / 1240 / 1243 s, spread **939 s** (staircase) |
-| chunked **on** | walls 1241–1267 s, spread **25.6 s**, TTFT ~4 s |
+| Condition | Completion wall (not TTFT) | TTFT |
+|---|---|---|
+| chunked **off** (4×118K simultaneous) | 304 / 1225 / 1240 / 1243 s, spread **939 s** (staircase) | not the headline |
+| chunked **on** | 1241–1267 s, spread **25.6 s** | ~4 s |
+
+**L1+L5 confound:** G1 dual-fill tick ~25 s is not L5 shorts-during-fill 4–12 s.
 
 Receipt: `results/omlx27_4way_results.json`. Measured prompt_tokens in that
 file are ~112,599, not a literal 118K.
@@ -47,8 +49,8 @@ Do not copy them here.
 ## MTP
 
 Leave MTP **off**. Load receipt exists: `results/mtp_on_off.json` (short-load
-only). Short-load did not win. Not a decode table (`decode_table.json`
-unpublished).
+only). Short-load did not win. Decode tok/s live in `results/decode_table.json`
+(published 2026-09-07; protocol [DECODE.md](DECODE.md)). Do not mix the two.
 
 ## Method notes
 

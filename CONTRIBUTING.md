@@ -1,7 +1,7 @@
 # Contributing
 
-This is a **lab notebook**. Receipts welcome. Number edits without JSON
-are rejected.
+This is a **lab notebook**. Receipts welcome. Number-only PRs
+(a number in README/PROFILE without a new `results/*.json`) **are closed**.
 
 ## Issues
 

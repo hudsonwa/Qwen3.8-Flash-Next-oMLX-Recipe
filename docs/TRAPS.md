@@ -13,11 +13,9 @@ stated). Not folklore.
    for a model; `/v1/models` advertised 262144 anyway. After every boot, verify the
    advertised value (`scripts/verify.sh` does). Trust the API, not the settings file.
 
-3. **MTP on this checkpoint, this box, is slower — leave it off.**
-   Solo: 60.9 tok/s on vs ~86 off. Load receipt **exists**:
-   `results/mtp_on_off.json` (8-way short jobs, peak 73 GB). Mean wall ~11.5 s
-   with MTP on vs ~4.8 s off. Short-load did not win. It stays off in every
-   config here. Do not treat that file as a decode-table A/B —
+3. **MTP on this checkpoint, this box — leave it off.**
+   Load receipt **exists**: `results/mtp_on_off.json` (short-load only).
+   Short-load did not win. Numbers: [PROFILE.md](PROFILE.md).
    `decode_table.json` is still not published.
 
 4. **Killing the `omlx serve` wrapper does not stop the server.** The wrapper spawns
@@ -63,7 +61,7 @@ stated). Not folklore.
 
 12. **The SSD cache grows to its cap by design — that's fine, disk is not the
     problem.** `ssd_cache_max_size: "auto"` resolved to a self-managed 185.8 GB LRU;
-    eviction is native. One D2 pair: 8.7 s hit vs ~229 s miss; two 252K prefixes
+    eviction is native. Disk vs RAM vs miss: [PROFILE.md](PROFILE.md). Two 252K prefixes
     may not both stay cached. Keep ~100 GB free. Don't hand-prune cache files
     while the server runs.
 
@@ -84,10 +82,8 @@ stated). Not folklore.
     **24.91 s** (`results/omlx_flash_2way_results.json`), then 1.34 s / 1.31 s.
     Cite 24.91 s when talking about a tick on top of a dual cold fill.
 
-17. **`hot_cache_max_size: "0"` is disk-tier hits (~8.3–9.0 s).** `--hot-cache-max-size 12GB`
-    holds **one** ~240k prefix in RAM (hits **~2.45–2.76 s**, peak **91 GB**,
-    `results/hot_cache_one_brain.json`). `10%` is not a valid size (`parse_size`
-    ValueError). Do not size the hot tier for two 252K heads. Launchd daily
-    argv still omits the flag (hot=0). Soft 96.8 GB still fails the arm.
+17. **Daily hot cache is off (`hot_cache_max_size: "0"`).** Optional `--hot-cache-max-size 12GB`
+    is one-head RAM residency, not a second orchestrator. Cite [PROFILE.md](PROFILE.md).
+    `10%` is not a valid size. Launchd daily argv omits the flag (hot=0).
 
 

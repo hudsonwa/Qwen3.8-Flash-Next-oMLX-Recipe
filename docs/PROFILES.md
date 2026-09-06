@@ -14,10 +14,10 @@ The filename `-mtp` on the checkpoint is **not** activation.
 | `mtp_enabled` | false |
 | `vlm_mtp_enabled` | false |
 | Metal plan | 102 GB / 107.5 GB cap |
-| Receipt (default path) | `results/single_head_latency.json` one ~240k head (2026-09-06) |
-| Receipt (historical dual) | `results/warm_8slot_results.json` dual ~240k walls 483.6 / 488.4 s (2026-08-31) |
+| Receipt | [PROFILE.md](PROFILE.md) — daily 1×252K hot=0; optional 12 GB hot; historical dual 08-31 |
 
-Tweet-sized (this profile only): *128 GB M5 Max, oQ4e, chunked prefill, one ~240k head + short slots.* Dual 484/488 s is a historical row. Decode tok/s waits for a paired JSON.
+Tweet-sized (this profile only): cite [PROFILE.md](PROFILE.md). Dual 08-31 is
+historical. Decode tok/s waits for `decode_table.json`.
 
 ## interactive (opt-in, not default)
 
@@ -32,8 +32,8 @@ Apply only with `python3 scripts/omlx-config.py --mode interactive --apply`.
 Then `python3 scripts/verify_activation.py --expect interactive` (log line
 `Qwen4-Exp Lightning MTP enabled` and checkpoint `mtp.` tensors).
 
-**No JSON in `results/` for this profile yet.** Do not cite tok/s. Measure peak
-GB vs 102 / 107.5 before claiming. Filename `-mtp` ≠ on.
+**Receipt exists:** `results/mtp_on_off.json` (short-load only). Short-load did
+not win. Leave MTP off. Filename `-mtp` ≠ on. `decode_table.json` unpublished.
 
 ## baseline (decode A/B only)
 

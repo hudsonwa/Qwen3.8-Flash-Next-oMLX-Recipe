@@ -27,8 +27,8 @@ Read this top to bottom before touching anything.
    Default warm path is **1×252K role + short slots**. Dual-head is gated off
    (`python3 scripts/warm-8slot.py --dual-head` only). Do not revert this.
    Plan to 102 GB against the 107.5 GB Metal cap. Soft 96.8 GB is a fail.
-   Two fill transients on a resident stack can cross the cap. One D2 pair:
-   8.7 s SSD hit vs ~229 s miss; two 252K prefixes may not both stay in the LRU.
+   Numbers: [docs/PROFILE.md](docs/PROFILE.md). Optional 12 GB hot KV is one-head
+   RAM residency, not a second orchestrator. Daily hot-cache remains **0**.
 
 6. **Process management:** `omlx serve` spawns a child server; killing the wrapper
    does nothing. Stop via port: `kill -TERM $(lsof -tnP -iTCP:8000 -sTCP:LISTEN)`.
@@ -36,9 +36,8 @@ Read this top to bottom before touching anything.
    and the OLD one keeps serving with whatever flags it was started with.
 
 7. **Do not enable MTP** (`mtp_enabled: true`) on this box / this checkpoint.
-   Solo 60.9 tok/s on vs ~86 off. Load receipt: `results/mtp_on_off.json`
-   (8-way short jobs). Short-load did not win (mean wall ~11.5 s on vs ~4.8 s
-   off). It is off in every config file in this repo on purpose.
+   Load receipt: `results/mtp_on_off.json` (short-load only). Short-load did
+   not win. Leave MTP off. `decode_table.json` is unpublished.
 
 8. **Fail closed.** If `scripts/verify.sh` reports a miss, stop and fix — do not
    declare success with degraded settings. A stack serving 131072-ctx instead of

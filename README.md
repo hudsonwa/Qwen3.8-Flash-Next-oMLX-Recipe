@@ -1,12 +1,8 @@
 # Qwen3.8 Flash-Next on a 128 GB Mac — oMLX single-server recipe
 
-**Tweet-sized, JSON-backed (serving profile only):** 128 GB M5 Max, oQ4e,
-chunked prefill, **one ~240k head + short slots** (`results/single_head_latency.json`,
-2026-09-06). Dual ~240k walls **483.6 / 488.4 s** are a **historical** row
-(`results/warm_8slot_results.json`, 2026-08-31) — not the daily warm path.
-Decode tok/s is **not** those walls. Interactive MTP: load receipt exists
-(`results/mtp_on_off.json`); short-load did not win, leave MTP off.
-See [docs/PROFILES.md](docs/PROFILES.md).
+**Tweet-sized, JSON-backed (serving profile only):** see
+[docs/PROFILE.md](docs/PROFILE.md). Default: one ~240k head + short slots, hot=0,
+MTP off. Dual 08-31 is historical. Decode tok/s is not those walls.
 
 
 ```
@@ -217,69 +213,38 @@ on the cache volume.
 ## Operator rules (measured)
 
 Daily serving: `max_concurrent_requests=8`, `chunked_prefill` on,
-`mtp_enabled` false, hot cache **off** (`hot_cache_max_size: "0"`).
-A 4-slot run is opt-in burst only (`launchctl bootout`, then
-`omlx serve … --max-concurrent-requests 4`); restore argv **8** after.
+`mtp_enabled` false, hot cache **off**. A 4-slot run is opt-in burst only;
+restore argv **8** after. Optional `--hot-cache-max-size 12GB` is one-head RAM
+residency, not a second orchestrator. Canonical numbers:
+[docs/PROFILE.md](docs/PROFILE.md).
 
-Hot KV for **one** brain is the one extra flag that measured a win:
-`--hot-cache-max-size 12GB` (not `10%` — `parse_size` rejects it). Same
-frozen ~240k prefix: disk hits **~8.5 s** with hot=0 vs RAM hits
-**~2.45–2.76 s** with 12GB; peak **91 GB**; still one head
-(`results/hot_cache_one_brain.json`). Daily launchd still ships hot=0.
-Do not size the hot tier for two 252K heads.
-
-- **Right-size.** ~60k mean wall **~71 s** vs ~240k mean wall **~285 s**
-  (`results/context_scaling.json`). Use the smallest tier that works.
-- **Frozen prefix, user text last.** Disk hit **~8.3–9.0 s** vs miss **~256 s**
-  (`results/prefix_hit_miss.json`). RAM hit **~2.45–2.76 s** if you opt in to
-  `--hot-cache-max-size 12GB`.
-- **One 252K head only.** Do not share the fill.
-- **Shorts during a long fill are 4–12 s** (`results/two_lane_latency.json`).
-  **OPEN item, not solved.** Do not close it.
-- **Stream + cap `max_tokens`.** Do not wait on an uncapped completion.
-- **Boot checks** (`scripts/verify.sh`): port owner is omlx, `/v1/models`
-  ctx ≥ 262144, no second GPU hog, ≥100 GB free on the SSD cache volume.
+- **Right-size.** Smallest tier that works.
+- **Frozen prefix, user text last.** Disk vs RAM vs miss: PROFILE.md.
+- **One 252K head only.** Dual only `--dual-head`.
+- **Shorts during a long fill are 4–12 s** — **OPEN, not solved.**
+- **Stream + cap `max_tokens`.**
+- **Boot checks** (`scripts/verify.sh`): port owner, ctx ≥ 262144, no second GPU hog, ≥100 GB cache free.
 
 ## Concurrency (measured)
 
-- **Default — one 252K head (L1):** `results/single_head_latency.json`.
-- **Historical dual 252K cold fill (W1, 2026-08-31):** walls 483.6 / 488.4 s,
-  spread **4.73 s**; measured prompt_tokens **240,393** each; planner ticks
-  mid-fill **11.26 s and 1.12 s** (range across the box ~1–25 s).
-- **Six workers over hot orchestrators (same 08-31 row):** measured
-  prompt_tokens **30,585** (TDD) and **61,089** (coder/auditor). Pair spreads
-  auditors **0.2 s**, coders **2.5 s**, TDD **8.9 s**; TTFT 0.05–0.66 s.
-- 27B dense 4×118K FIFO vs chunked, and any mlx-serve comparison, live in
-  [docs/BATTERY.md](docs/BATTERY.md) as **separate** experiments.
+Canonical table: [docs/PROFILE.md](docs/PROFILE.md). 27B-dense: [docs/BATTERY.md](docs/BATTERY.md) experiment 1. Unbacked mlx-serve / llama.cpp: [docs/PENDING.md](docs/PENDING.md).
 
 ## Verify (after every boot)
 
 1. `/v1/models` advertises `max_model_len: 262144`.
-2. Boot log shows the enforcer from **this** boot:
-   `Process memory enforcer started (ceiling=107.5GB)`.
-3. `footprint <pid>`: ~69 GB idle.
+2. Boot log shows the enforcer from **this** boot.
+3. `footprint <pid>`: idle ~69 GB.
 4. One live generation, then `scripts/warm-8slot.py` if you want the full receipt.
 
 ## Traps and scaling limits
 
-All measured traps live in [docs/TRAPS.md](docs/TRAPS.md). Measured NOs:
-
-| Attempt | Result |
-|---|---|
-| MTP speculative decode on **this** checkpoint, **this** box | 60.9 tok/s solo vs ~86 off; `results/mtp_on_off.json` 8-way short-load mean wall ~11.5 s on vs ~4.8 s off — leave off. Not a decode table |
-| Second flash instance (2× weights) | Impossible: 2×69 GB weights alone exceed the chip |
-| 27B / llama.cpp long-prefill concurrency | FIFO staircase observed on those engines (27B 4×118K receipt in `results/omlx27_4way_results.json`; llama.cpp *receipt pending re-run* — no JSON in `results/`) — oMLX chunked is the measured fix **for that experiment** |
+All measured traps: [docs/TRAPS.md](docs/TRAPS.md). MTP leave off (`mtp_on_off.json`, short-load). Second flash instance: 2× weights will not fit. llama.cpp comparison: [docs/PENDING.md](docs/PENDING.md).
 
 ## Results
 
-Raw measurement JSON from the reference machine: [results/](results/) —
-L1–L8 files listed in [results/README.md](results/README.md). Historical dual:
-`warm_8slot_results.json` (08-31 W1 dual-252K + W2 six workers).
-`mtp_on_off.json` **is** published (leave MTP off). `decode_table.json` is
-**not**. `guard_projection.json` is projection-only (no tok/s). There is
-**no mlx-serve JSON in `results/`** — every mlx-serve figure in this repo is
-labeled *receipt pending re-run*. Methodology:
-[docs/BATTERY.md](docs/BATTERY.md).
+Raw JSON: [results/](results/) index in [results/README.md](results/README.md).
+Numbers: [docs/PROFILE.md](docs/PROFILE.md). Unbacked comparisons:
+[docs/PENDING.md](docs/PENDING.md). `decode_table.json` is unpublished.
 
 ## Credits
 

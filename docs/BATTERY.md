@@ -14,9 +14,9 @@ Cross-size spreads are expected (64K-sized slots take roughly twice as long as
 ~instantly under chunked prefill) and mid-fill tick latency (a short request
 poked in during the fill).
 
-The 8-slot recipe is **one process**, `max_concurrent_requests=8`, **two
-sequential batteries** (2× long prefill, then 6× medium prefill). That is
-HTTP concurrency, not eight reserved KV slots.
+The 8-slot recipe is **one process**, `max_concurrent_requests=8`.
+Default warm path is **one 252K head + short slots**. Dual-head is historical.
+Numbers: [PROFILE.md](PROFILE.md) (locked to `results/*.json`).
 
 ## Experiment 1 — 27B dense, 4×118K (FIFO vs chunked)
 
@@ -30,24 +30,16 @@ Architecture: Qwen3.8 **27B dense**, not Flash-Next. Same machine, oMLX 0.6.4.
 Receipt: `results/omlx27_4way_results.json`. Measured prompt_tokens in that
 file are ~112,599, not a literal 118K.
 
-## Experiment 2 — Flash-Next, 2×252K (this recipe)
+## Experiment 2 — Flash-Next (this recipe)
 
-Architecture: Qwen3.8 **Flash-Next** oQ4e, oMLX 0.6.4, chunked on.
+Architecture: Qwen3.8 **Flash-Next** oQ4e, oMLX 0.6.4. **Canonical numbers:**
+[PROFILE.md](PROFILE.md). Dual-252K 08-31 is a historical row in that table,
+not the daily warm path.
 
-| Test | Result | Receipt |
-|---|---|---|
-| W1 dual fill + ticks | walls 483.62 / 488.35 s, spread **4.73 s**; ticks **11.26 s** and **1.12 s**; peak **98 GB**; prompt_tokens **240,393** | `results/warm_8slot_results.json` |
-| G1 dual fill | walls 539.09 / 541.91 s, spread **2.82 s**; ticks 24.91 / 1.34 / 1.31 s; peak **102 GB** (planning number vs 107.5 GB Metal cap); prompt_tokens **240,381** | `results/omlx_flash_2way_results.json`; corroborated by `results/p4_combined_results.json` H2_flash_2x252k_fill peak 102 |
-| W2 six workers on hot orch | prompt_tokens **30,585** (TDD) / **61,089** (coder, auditor); pair spreads auditors 0.21 s / coders 2.53 s / TDD 8.88 s; ~1,017 tok/s agg | `results/warm_8slot_results.json` |
-| Solo 252K fill (G0) | 228.7 s (~1,050 tok/s) | `results/omlx_flash_2way_results.json` |
+Competitive engine rows with no JSON: [PENDING.md](PENDING.md).
 
-**mlx-serve comparison (same Flash-Next model, different engine):** the historical
-measurement was 2 serial FIFO prefills, 1,084 s wall / spread 563 s, with a planner
-tick waiting 553 s mid-fill. **Receipt pending re-run** — no mlx-serve JSON exists
-in `results/` for these figures; treat them as historical until re-measured, and do
-not delete them until a replacement receipt lands.
-
-Tick range to quote in summaries: **~1–25 s**, with the W1 pair cited together.
+Tick range to quote: G1 **24.91 s** and W1 **11.26 s** / **1.12 s** (cite
+PROFILE.md). Shorts during a single long fill 4–12 s remain OPEN.
 
 ## Footprint ledger (phys_footprint, GB)
 
@@ -60,19 +52,16 @@ Tick range to quote in summaries: **~1–25 s**, with the W1 pair cited together
 | Static worst case (nothing tiered) | ~97–99 |
 | Slot cache rate | ~9.25 GB / 252K slot; ~1.2 GB / 32K; ~2.3 GB / 64K |
 
-## SSD tier receipts
+## SSD tier
 
-- One D2 pair: warm 252K prefix re-promoted from SSD **8.7 s** vs **~229 s**
-  full re-prefill on LRU miss. Not a guarantee both orchestrators stay warm.
-- `auto` max size resolved to a self-managed **185.8 GB LRU** cap; eviction is
-  native. Two 252K prefixes may not both stay cached. Keep ~100 GB free on
-  the cache volume.
+See [PROFILE.md](PROFILE.md): disk hit vs RAM hit vs miss. Two 252K prefixes
+may not both stay in the LRU. Keep ~100 GB free on the cache volume.
 
 ## MTP
 
-Solo, this checkpoint, this box: 60.9 tok/s with MTP on vs ~86 off. That is
-**not** a general law and is **unmeasured at 8-way** until
-`results/mtp_on_off.json` exists.
+Leave MTP **off**. Load receipt exists: `results/mtp_on_off.json` (short-load
+only). Short-load did not win. Not a decode table (`decode_table.json`
+unpublished).
 
 ## Method notes
 

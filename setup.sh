@@ -10,24 +10,30 @@ cd "$(dirname "$0")"
 
 INSTALL_AGENT=0
 STATE=""
+BOOTSTRAP_CHECK=0
+HOT_12G=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --install-agent) INSTALL_AGENT=1 ;;
+    --bootstrap-check) BOOTSTRAP_CHECK=1 ;;
+    --hot-cache-12gb) HOT_12G=1 ;;
     --state)
       shift
       STATE="${1:-}"
       [ -n "$STATE" ] || { echo "FAIL: --state needs a directory" >&2; exit 1; }
       ;;
     -h|--help)
-      echo "usage: bash setup.sh [--install-agent] [--state DIR]"
-      echo "  --state DIR  patch DIR/{settings,model_settings}.json instead of ~/.omlx"
-      echo "               (set OMLX_HOME=DIR when serving if the binary honors it)"
+      echo "usage: bash setup.sh [--install-agent] [--state DIR] [--bootstrap-check] [--hot-cache-12gb]"
+      echo "  --state DIR         isolated config dir (does not mutate ~/.omlx)"
+      echo "  --bootstrap-check   dry run: same gates, no writes; exit 0 only if setup.sh would succeed"
+      echo "  --hot-cache-12gb    optional one-brain RAM variant (not daily default)"
       exit 0
       ;;
     *) echo "FAIL: unknown argument: $1" >&2; exit 1 ;;
   esac
   shift
 done
+EXACT_MODEL_ID="qwen38-flash-next-oq4e-mtp"
 OMLX_CONF="${STATE:-$HOME/.omlx}"
 
 OS="$(uname -s)"; ARCH="$(uname -m)"
@@ -107,6 +113,19 @@ PY
 fi
 [ "$fail" = "1" ] && exit 1
 
+if [ "$BOOTSTRAP_CHECK" = "1" ]; then
+  if [ ! -f "$OMLX_CONF/settings.json" ]; then
+    echo "FAIL: $OMLX_CONF/settings.json missing — a real setup.sh would fail" >&2
+    exit 1
+  fi
+  if [ ! -f "$OMLX_CONF/model_settings.json" ]; then
+    echo "FAIL: $OMLX_CONF/model_settings.json missing — a real setup.sh would fail" >&2
+    exit 1
+  fi
+  echo "PASS: --bootstrap-check (no writes). A subsequent bash setup.sh would succeed on these gates."
+  exit 0
+fi
+
 mkdir -p "$MODEL_DIR"
 ln -sfn "$MODEL_SRC" "$MODEL_DIR/$(basename "$MODEL_SRC")"
 echo "==> quarantine dir ready: $MODEL_DIR -> $(basename "$MODEL_SRC")"
@@ -135,54 +154,85 @@ if [ ! -f "$OMLX_CONF/model_settings.json" ]; then
   exit 1
 fi
 
-python3 - "$OMLX_CONF/settings.json" <<'PYEOF'
-import json, sys
-path = sys.argv[1]
-with open(path) as f:
-    cfg = json.load(f)
+python3 - "$OMLX_CONF/settings.json" "$HOT_12G" <<'PYEOF'
+import json, os, sys, time
+from pathlib import Path
+path = Path(sys.argv[1])
+hot12 = sys.argv[2] == "1"
+
+def atomic_write(p: Path, obj):
+    utc = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    bak = p.with_name(p.name + ".bak." + utc)
+    bak.write_bytes(p.read_bytes())
+    print("BACKUP", bak.name)
+    tmp = p.with_name(p.name + ".tmp." + str(os.getpid()))
+    tmp.write_text(json.dumps(obj, indent=2) + "\n")
+    os.replace(tmp, p)
+
+cfg = json.loads(path.read_text())
 changed = []
 sch = cfg.setdefault("scheduler", {})
 if not sch.get("chunked_prefill"):
-    sch["chunked_prefill"] = True; changed.append("scheduler.chunked_prefill=true")
+    sch["chunked_prefill"] = True
+    changed.append("scheduler.chunked_prefill=true")
 sch.setdefault("prefill_priority", "context")
 sch.setdefault("decode_fairness", True)
 if sch.get("max_concurrent_requests") != 8:
-    sch["max_concurrent_requests"] = 8; changed.append("scheduler.max_concurrent_requests=8")
+    sch["max_concurrent_requests"] = 8
+    changed.append("scheduler.max_concurrent_requests=8")
 mem = cfg.setdefault("memory", {})
 mem.setdefault("prefill_memory_guard", True)
 mem.setdefault("memory_guard_tier", "balanced")
 mem.setdefault("soft_threshold", 0.85)
 mem.setdefault("hard_threshold", 0.95)
+cache = cfg.setdefault("cache", {})
+want = "12GB" if hot12 else "0"
+if str(cache.get("hot_cache_max_size")) != want:
+    cache["hot_cache_max_size"] = want
+    changed.append("cache.hot_cache_max_size=%s" % want)
 if changed:
-    with open(path, "w") as f:
-        json.dump(cfg, f, indent=2)
-    print("PATCHED settings.json:", ", ".join(changed))
+    atomic_write(path, cfg)
+    print("PATCHED file=%s:" % path.name, ", ".join(changed))
 else:
-    print("settings.json already correct (chunked_prefill on, mc=8)")
+    print("settings.json already correct (chunked_prefill on, mc=8, hot=%s) file=%s" % (want, path.name))
 PYEOF
 
-python3 - "$OMLX_CONF/model_settings.json" <<'PYEOF'
-import json, sys
-path = sys.argv[1]
-with open(path) as f:
-    cfg = json.load(f)
+python3 - "$OMLX_CONF/model_settings.json" "$EXACT_MODEL_ID" <<'PYEOF'
+import json, os, re, sys, time
+from pathlib import Path
+path = Path(sys.argv[1])
+exact = sys.argv[2]
+
+def atomic_write(p: Path, obj):
+    utc = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    bak = p.with_name(p.name + ".bak." + utc)
+    bak.write_bytes(p.read_bytes())
+    print("BACKUP", bak.name)
+    tmp = p.with_name(p.name + ".tmp." + str(os.getpid()))
+    tmp.write_text(json.dumps(obj, indent=2) + "\n")
+    os.replace(tmp, p)
+
+cfg = json.loads(path.read_text())
 models = cfg.setdefault("models", {})
-found = False
-for name, m in models.items():
-    if "flash" in name.lower():
-        if m.get("mtp_enabled") is not False:
-            m["mtp_enabled"] = False
-            print(f"PATCHED {name}: mtp_enabled=false (measured slower on this box)")
-        m.setdefault("max_context_window", 262144)
-        m.setdefault("qwen4_ple_ssd_offload", True)
-        print(f"model entry {name}: mtp off, ctx 262144, PLE ssd offload — OK")
-        found = True
-        break
-if not found:
-    print("FAIL: no flash-next model entry in model_settings.json — start the server once so oMLX writes one, stop it, re-run setup.sh", file=sys.stderr)
+glm = [n for n in models if re.search(r"GLM-.*Flash", n, re.I)]
+if glm:
+    print("FAIL: refuse GLM-*-Flash entries: %s" % ", ".join(glm), file=sys.stderr)
     sys.exit(1)
-with open(path, "w") as f:
-    json.dump(cfg, f, indent=2)
+flashish = [n for n in models if "flash" in n.lower()]
+if exact not in models:
+    print("FAIL: no exact model id %s in model_settings.json (have %s)" % (exact, flashish or list(models)), file=sys.stderr)
+    sys.exit(1)
+others = [n for n in flashish if n != exact]
+if others:
+    print("FAIL: second flash hit refused: %s (only %s is allowed)" % (", ".join(others), exact), file=sys.stderr)
+    sys.exit(1)
+m = models[exact]
+if m.get("mtp_enabled") is not False:
+    m["mtp_enabled"] = False
+m.setdefault("max_context_window", 262144)
+m.setdefault("qwen4_ple_ssd_offload", True)
+atomic_write(path, cfg)
+print("PATCHED file=%s model_id=%s mtp_enabled=false ctx=262144 PLE ssd offload" % (path.name, exact))
 PYEOF
 
 for f in scripts/serve-flash.sh.in scripts/com.omlx.flash8slot.plist.in; do

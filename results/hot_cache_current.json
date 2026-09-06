@@ -1,0 +1,15 @@
+{
+  "measured_at": "2026-09-06T22:22:00+0800",
+  "omlx": "0.6.4",
+  "settings_hot_cache_max_size": "0",
+  "hot_cache_disabled": true,
+  "hot_cache_write_through": false,
+  "serve_command": "omlx serve --model-dir <model-dir> --host 0.0.0.0 --port 8000 --max-concurrent-requests 8 --paged-ssd-cache-dir <ssd-cache>",
+  "serve_argv_has_hot_cache_flag": false,
+  "launchd_label": "com.omlx.flash8slot",
+  "live_mc": 8,
+  "chunked_prefill": true,
+  "idle_phys_footprint_gb": 69,
+  "peak_phys_footprint_gb": 69,
+  "notes": "LaunchAgent argv has no --hot-cache-max-size. settings cache.hot_cache_max_size is \"0\" (disabled). Live process title is omlx-server; argv taken from the LaunchAgent ProgramArguments."
+}

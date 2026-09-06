@@ -22,7 +22,7 @@ jobs:
         run: python3 -c "import xml.etree.ElementTree as ET; ET.parse('scripts/com.omlx.flash8slot.plist.in'); print('plist XML OK')"
 
       - name: Python battery compiles
-        run: python3 -m py_compile scripts/warm-8slot.py scripts/resolve_model.py scripts/mtp-measure.py scripts/machine_stamp.py scripts/benchmark.py scripts/compare.py scripts/quality_suite.py scripts/omlx-config.py scripts/verify_activation.py scripts/guard_dual_cold.py scripts/check-results.py && echo "py compile OK"
+        run: python3 -m py_compile scripts/*.py && echo "py compile OK"
 
       - name: Dual-cold projection self-test
         run: python3 scripts/guard_dual_cold.py --self-test

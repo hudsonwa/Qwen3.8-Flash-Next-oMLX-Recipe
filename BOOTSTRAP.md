@@ -10,6 +10,10 @@ Daily profile (unchanged by PR #48): **1×252K head + short slots**, MTP **off**
 [MODELS.md](MODELS.md). `--hot-cache-max-size 12GB` is an optional measured
 variant, not the default.
 
+SSD KV/prefix cache (`~/.omlx/ssd-cache`) is prompt-derived data at rest.
+FileVault is assumed. Wipe only after the server is stopped:
+[docs/PRIVACY.md](docs/PRIVACY.md). “Keep ~100 GB free” is capacity, not a wipe.
+
 Do these steps in order.
 
 ## (a) Machine

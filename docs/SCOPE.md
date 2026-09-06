@@ -31,3 +31,7 @@ canaries) as a pip module or product.
 
 Daily serving profile (unchanged): 1×252K head + short slots, `hot_cache_max_size=0`,
 `max_concurrent_requests=8`, MTP off, oMLX 0.6.4.
+
+Prefix/KV spilled to the SSD cache is prompt-derived data at rest, unencrypted
+by this recipe. FileVault is assumed, not provided. Wipe steps:
+[PRIVACY.md](PRIVACY.md).

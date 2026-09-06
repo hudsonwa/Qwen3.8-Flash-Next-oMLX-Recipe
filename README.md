@@ -1,16 +1,19 @@
 # Qwen3.8 Flash-Next on a 128 GB Mac — oMLX single-server recipe
 
 **Tweet-sized, JSON-backed (serving profile only):** 128 GB M5 Max, oQ4e,
-chunked prefill, dual ~240k walls **483.6 / 488.4 s** (2026-08-31,
-`results/warm_8slot_results.json`). Decode tok/s is **not** those walls.
-Interactive MTP profile: **no JSON yet** — see [docs/PROFILES.md](docs/PROFILES.md).
+chunked prefill, **one ~240k head + short slots** (`results/single_head_latency.json`,
+2026-09-06). Dual ~240k walls **483.6 / 488.4 s** are a **historical** row
+(`results/warm_8slot_results.json`, 2026-08-31) — not the daily warm path.
+Decode tok/s is **not** those walls. Interactive MTP: load receipt exists
+(`results/mtp_on_off.json`); short-load did not win, leave MTP off.
+See [docs/PROFILES.md](docs/PROFILES.md).
 
 
 ```
 This recipe (128 GB, 8 HTTP slots)     Different lab (e.g. 256 GB single-stream)
 -----------------------------------    ---------------------------------------
-2 x ~240k concurrent *prefill*         single-stream *decode* / ANE / MTP draft
-walls 484 / 488 s (receipt 08-31)      different memory regime — do not port here
+default: 1 x ~240k head + short slots  single-stream *decode* / ANE / MTP draft
+historical dual 484 / 488 s (08-31)    different memory regime — do not port here
 generation tok/s: pending paired JSON  do not compare 8-token dummy walls to that
 ```
 
@@ -34,27 +37,30 @@ Re-measure on your own hardware before trusting any figure here.
   fetches the runtime from GitHub and the checkpoint from Hugging Face;
   **inference** after that can stay on the Mac (no cloud API).
 - **What was measured:** **one** oMLX process with `max_concurrent_requests=8`.
-  The acceptance battery is **two sequential phases**: first two long prefills
-  together, then six medium prefills together. That is HTTP concurrency on one
-  server, not eight reserved KV “sessions” and not eight separate apps.
-- **Ticks during a long fill:** observed **~1–25 s**, not “about one second”.
-  The W1 pair on this box was **11.26 s** and **1.12 s** (cite both).
-- **Memory:** dual-252K peaks were **98 GB (W1)** and **102 GB (G1)**. Use
-  **102 GB** as the planning number against the 107.5 GB Metal cap. Steady
-  state after tiering was ~73 GB.
+  Default warm path is **one 252K head + short slots**. The 08-31 battery
+  (two long prefills together, then six medium) is a historical dual-head
+  row, not the daily path. HTTP concurrency on one server — not eight reserved
+  KV “sessions” and not eight separate apps.
+- **Ticks during a long fill:** dual-fill ticks were **~1–25 s** (W1 11.26 s
+  and 1.12 s). Shorts *during* a single long fill are **4–12 s**
+  (`results/two_lane_latency.json`) — **OPEN**, not solved.
+- **Memory:** one-head peak **88 GB**; idle **~69 GB**; steady **~73 GB**.
+  Historical dual-252K peaks **98 GB (W1)** / **102 GB (G1)**. Plan **102 GB**
+  against the 107.5 GB Metal cap. Soft **96.8 GB** is a fail.
 - **You can re-run the proof:** `scripts/warm-8slot.py` plus raw JSON in
-  `results/`. Nothing here is projected.
+  `results/`. Guard arithmetic in `results/guard_projection.json` is labeled
+  projection-only (no tok/s).
 
 ## The technical detail
 
 **One oMLX 0.6.4 process, one Flash-Next (125B-A6B MoE) checkpoint, eight
-HTTP request slots advertised:** 2 orchestrators sized toward 252K + 2 TDD
-toward 32K + 2 coders toward 64K + 2 auditors toward 64K. The harness’s
-*measured* `prompt_tokens` were **240,393 / 61,089 / 30,585** — not 252K /
-64K / 32K. True concurrency is wall equality: simultaneous long prefills
-finish with near-equal walls (spread 4.7 s on the W1 dual fill). The stack
-lives under the 107.5 GB Metal working-set cap with an adaptive memory
-enforcer and automatic SSD tiering.
+HTTP request slots advertised.** Default: **one** orchestrator sized toward
+252K plus short slots. Do not boot-warm two 252K heads. The 08-31 harness
+shape (2×252K + 2×32K + 2×64K + 2×64K) is historical; measured
+`prompt_tokens` on that row were **240,393 / 61,089 / 30,585** — not 252K /
+64K / 32K. True concurrency is wall equality on whatever you actually fire.
+The stack lives under the 107.5 GB Metal working-set cap with an adaptive
+memory enforcer and automatic SSD tiering.
 
 Every number in this repo was measured on the reference machine with oMLX
 0.6.4. Nothing is extrapolated.
@@ -127,8 +133,9 @@ Per-model (`~/.omlx/model_settings.json`): `mtp_enabled: false`,
 checkpoint.
 
 `mtp_enabled: false` is **measured on this box / this checkpoint** (solo
-60.9 tok/s on vs ~86 off). It is not a general law until
-`results/mtp_on_off.json` exists for solo **and** load.
+60.9 tok/s on vs ~86 off). Load receipt: `results/mtp_on_off.json` (8-way
+short jobs). Short-load did not win — leave MTP off. That file is not a
+decode-table A/B (`decode_table.json` is still unpublished).
 
 `setup.sh` patches both files. Missing files are a **fail** (start the server
 once so oMLX writes them, stop it, re-run setup.sh). oMLX version must be
@@ -185,11 +192,13 @@ on the cache volume.
 
 ## Operating rules (all measured)
 
-1. **Boot-warm both orchestrators together — that's safe from empty**
-   (W1 98 GB, G1 102 GB). The rule is about *later*: **never cold-fill both
-   252K orchestrators while the fleet is resident** — two fill spikes on
-   top of steady state can cross the cap and cost you SSD evictions of hot
-   slots.
+1. **Boot-warm one 252K head; never dual cold-fill once the fleet is resident.**
+   Default warm path is **1×252K role + short slots**. Dual-head is gated off
+   (`python3 scripts/warm-8slot.py --dual-head` only). Do not revert this.
+   Plan to 102 GB against the 107.5 GB Metal cap. Soft 96.8 GB is a fail.
+   Two fill transients on a resident stack can cross the cap. One D2 pair:
+   8.7 s SSD hit vs ~229 s miss; two 252K prefixes may not both stay in the LRU.
+   (`scripts/guard_dual_cold.py` — see TRAPS #11 / `results/guard_projection.json`.)
 2. **Verify the advertised context after every boot** (`scripts/verify.sh`):
    per-model `max_context_window` is not always honored. Trust `/v1/models`,
    not the settings file.
@@ -201,14 +210,33 @@ on the cache volume.
    `kill -TERM $(lsof -tnP -iTCP:8000 -sTCP:LISTEN)` — `omlx serve` spawns a
    child that survives the wrapper.
 
+## Operator rules (measured; no new flags)
+
+These are how you *use* the 8-slot serving default. They are not new
+`omlx` switches. `max_concurrent_requests=8`, `chunked_prefill` on,
+`mtp_enabled` false. A 4-slot run is opt-in burst only (`launchctl bootout`,
+then `omlx serve … --max-concurrent-requests 4`); restore argv **8** after.
+
+- **Right-size.** ~60k mean wall **~71 s** vs ~240k mean wall **~285 s**
+  (`results/context_scaling.json`). Use the smallest tier that works.
+- **Frozen prefix, user text last.** Hit **~8.3–9.0 s** vs miss **~256 s**
+  (`results/prefix_hit_miss.json`).
+- **One 252K head only.** Do not share the fill.
+- **Shorts during a long fill are 4–12 s** (`results/two_lane_latency.json`).
+  **OPEN item, not solved.** Do not close it.
+- **Stream + cap `max_tokens`.** Do not wait on an uncapped completion.
+- **Boot checks** (`scripts/verify.sh`): port owner is omlx, `/v1/models`
+  ctx ≥ 262144, no second GPU hog, ≥100 GB free on the SSD cache volume.
+
 ## Concurrency (measured)
 
-- **Dual 252K cold fill (W1):** walls 483.6 / 488.4 s, spread **4.73 s**;
-  measured prompt_tokens **240,393** each; planner ticks mid-fill
-  **11.26 s and 1.12 s** (range across the box ~1–25 s).
-- **Six workers over hot orchestrators:** measured prompt_tokens
-  **30,585** (TDD) and **61,089** (coder/auditor). Pair spreads auditors
-  **0.2 s**, coders **2.5 s**, TDD **8.9 s**; TTFT 0.05–0.66 s.
+- **Default — one 252K head (L1):** `results/single_head_latency.json`.
+- **Historical dual 252K cold fill (W1, 2026-08-31):** walls 483.6 / 488.4 s,
+  spread **4.73 s**; measured prompt_tokens **240,393** each; planner ticks
+  mid-fill **11.26 s and 1.12 s** (range across the box ~1–25 s).
+- **Six workers over hot orchestrators (same 08-31 row):** measured
+  prompt_tokens **30,585** (TDD) and **61,089** (coder/auditor). Pair spreads
+  auditors **0.2 s**, coders **2.5 s**, TDD **8.9 s**; TTFT 0.05–0.66 s.
 - 27B dense 4×118K FIFO vs chunked, and any mlx-serve comparison, live in
   [docs/BATTERY.md](docs/BATTERY.md) as **separate** experiments.
 
@@ -226,19 +254,19 @@ All measured traps live in [docs/TRAPS.md](docs/TRAPS.md). Measured NOs:
 
 | Attempt | Result |
 |---|---|
-| MTP speculative decode on **this** checkpoint, **this** box | 60.9 tok/s solo vs ~86 with it off — leave off until `results/mtp_on_off.json` covers load too; not a general law |
+| MTP speculative decode on **this** checkpoint, **this** box | 60.9 tok/s solo vs ~86 off; `results/mtp_on_off.json` 8-way short-load mean wall ~11.5 s on vs ~4.8 s off — leave off. Not a decode table |
 | Second flash instance (2× weights) | Impossible: 2×69 GB weights alone exceed the chip |
 | 27B / llama.cpp long-prefill concurrency | FIFO staircase observed on those engines (27B 4×118K receipt in `results/omlx27_4way_results.json`; llama.cpp *receipt pending re-run* — no JSON in `results/`) — oMLX chunked is the measured fix **for that experiment** |
 
 ## Results
 
 Raw measurement JSON from the reference machine: [results/](results/) —
-`warm_8slot_results.json` (the 8-slot acceptance battery: W1 dual-252K boot-warm +
-ticks, W2 six workers), `omlx_flash_2way_results.json` (Flash-Next 2×252K: G0/G1/D2),
-`omlx27_4way_results.json` (27B dense 4×118K, chunked off vs on), and
-`p4_combined_results.json` (dual-engine stress, flash :8000 + 27B :8001). There is
-**no mlx-serve JSON in `results/`** — every mlx-serve figure in this repo is labeled
-*receipt pending re-run*. Methodology:
+L1–L8 files listed in [results/README.md](results/README.md). Historical dual:
+`warm_8slot_results.json` (08-31 W1 dual-252K + W2 six workers).
+`mtp_on_off.json` **is** published (leave MTP off). `decode_table.json` is
+**not**. `guard_projection.json` is projection-only (no tok/s). There is
+**no mlx-serve JSON in `results/`** — every mlx-serve figure in this repo is
+labeled *receipt pending re-run*. Methodology:
 [docs/BATTERY.md](docs/BATTERY.md).
 
 ## Credits

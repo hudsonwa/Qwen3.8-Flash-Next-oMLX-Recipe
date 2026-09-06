@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# One-shot setup: oMLX 8-slot Flash-Next stack (2x252K + 2x32K + 2x64K + 2x64K)
+# One-shot setup: oMLX 8-slot Flash-Next stack (default 1x252K head + short slots;
+# historical dual 2x252K is a 2026-08-31 receipt, not the daily warm path)
 # on a 128 GB Apple Silicon Mac. Checks prerequisites, patches oMLX config for
 # chunked prefill + memory guard, renders the foreground launcher.
 # Does NOT auto-start the server. Does NOT write a LaunchAgent unless

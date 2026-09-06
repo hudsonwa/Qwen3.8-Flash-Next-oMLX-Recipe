@@ -14,9 +14,10 @@ The filename `-mtp` on the checkpoint is **not** activation.
 | `mtp_enabled` | false |
 | `vlm_mtp_enabled` | false |
 | Metal plan | 102 GB / 107.5 GB cap |
-| Receipt | `results/warm_8slot_results.json` dual ~240k walls 483.6 / 488.4 s (2026-08-31) |
+| Receipt (default path) | `results/single_head_latency.json` one ~240k head (2026-09-06) |
+| Receipt (historical dual) | `results/warm_8slot_results.json` dual ~240k walls 483.6 / 488.4 s (2026-08-31) |
 
-Tweet-sized (this profile only): *128 GB M5 Max, oQ4e, chunked prefill, dual ~240k walls 484/488 s.* Decode tok/s waits for a paired JSON.
+Tweet-sized (this profile only): *128 GB M5 Max, oQ4e, chunked prefill, one ~240k head + short slots.* Dual 484/488 s is a historical row. Decode tok/s waits for a paired JSON.
 
 ## interactive (opt-in, not default)
 

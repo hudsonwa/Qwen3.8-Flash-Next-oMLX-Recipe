@@ -1,0 +1,43 @@
+{
+  "kind": "projection_only",
+  "note": "No live tok/s. Arithmetic only. Constants cited from receipts already in results/ and the README memory table.",
+  "omlx": "0.6.4",
+  "hf_revision": "2615fc0e976e65c2f3b55daca3a948f1cdc5b9f8",
+  "plan_gb": 102.0,
+  "soft_gb": 96.8,
+  "cap_gb": 107.5,
+  "slot_252k_gb": 9.25,
+  "idle_gb": 69.0,
+  "one_head_peak_gb": 88.0,
+  "steady_gb": 73.0,
+  "one_head_fill_spike_gb": 19.0,
+  "formula": "projected = now + pending_252k * slot_252k_gb + one_head_fill_spike_gb",
+  "refuse": "dual 252K requested AND (projected > 102 OR now >= 96.8 OR now >= 73 steady)",
+  "why_not_static_74": "Steady after one 252K is 73 GB. A 74 GB cutoff would allow a second 252K on a resident fleet.",
+  "sources": {
+    "idle_gb": "README memory table: booted idle ~69 GB; TRAPS #8",
+    "one_head_peak_gb": "results/single_head_latency.json peak_gb 88 (2026-09-06)",
+    "steady_gb": "README: steady after tiering 73 GB; results/mtp_on_off.json peak_gb 73",
+    "slot_252k_gb": "README slot rate ~9.25 GB per 252K",
+    "soft_plan_cap": "AGENT.md §5 / README: plan 102, soft 96.8 fail, Metal cap 107.5",
+    "historical_dual_walls": "results/warm_8slot_results.json 2026-08-31 walls 483.6 / 488.4 s — historical row, not the default warm path"
+  },
+  "cases": {
+    "must_fail_resident_second_252k": {
+      "now_gb": 73.0,
+      "pending_252k": 1,
+      "dual": true,
+      "projected_gb": 101.25,
+      "refuse": true,
+      "why": "now >= steady 73; second 252K on a resident fleet"
+    },
+    "must_pass_idle_one_252k": {
+      "now_gb": 69.0,
+      "pending_252k": 1,
+      "dual": false,
+      "projected_gb": 97.25,
+      "refuse": false,
+      "why": "dual not requested; idle + one 252K is the default path"
+    }
+  }
+}

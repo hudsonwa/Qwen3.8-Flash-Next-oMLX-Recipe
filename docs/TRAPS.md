@@ -13,9 +13,12 @@ stated). Not folklore.
    for a model; `/v1/models` advertised 262144 anyway. After every boot, verify the
    advertised value (`scripts/verify.sh` does). Trust the API, not the settings file.
 
-3. **MTP on this checkpoint, this box, is slower solo — not a general law.**
-   `mtp_enabled: true` measured 60.9 tok/s solo vs ~86 off. Unmeasured at 8-way
-   until `results/mtp_on_off.json` exists. It stays off in every config here.
+3. **MTP on this checkpoint, this box, is slower — leave it off.**
+   Solo: 60.9 tok/s on vs ~86 off. Load receipt **exists**:
+   `results/mtp_on_off.json` (8-way short jobs, peak 73 GB). Mean wall ~11.5 s
+   with MTP on vs ~4.8 s off. Short-load did not win. It stays off in every
+   config here. Do not treat that file as a decode-table A/B —
+   `decode_table.json` is still not published.
 
 4. **Killing the `omlx serve` wrapper does not stop the server.** The wrapper spawns
    a child `omlx-server` that survives. Stop by port:
@@ -48,10 +51,15 @@ stated). Not folklore.
     `[variant <tag>]` to every repeated filler and discard unsalted repeat runs.
 
 11. **Do not dual cold-fill while the fleet is resident.** Default warm path is
-    one 252K head (`scripts/warm-8slot.py`). `--dual-head` is gated;
-    `scripts/guard_dual_cold.py` exits 1 when `phys_footprint` current ≥ 74 GB.
-    A 90 s stagger does not save a dual cold-fill (two ~10 GB transients on a
-    resident stack). Historical dual-from-empty peaks: W1 98 GB / G1 102 GB.
+    one 252K head (`scripts/warm-8slot.py`). `--dual-head` is gated.
+    `scripts/guard_dual_cold.py` no longer uses a static 74 GB cutoff (steady
+    73 GB sat under 74 and would have admitted a second 252K). Projected peak:
+    `now + pending_252k * 9.25 + one_head_fill_spike` (spike = 88 − 69 = 19 GB)
+    vs plan **102 GB** / soft **96.8 GB**. Refuse dual when projected > 102, or
+    now ≥ 96.8, or now ≥ 73 (fleet already holding a 252K). Must-fail: 73 GB +
+    second 252K. Must-pass: idle ~69 GB + one 252K. Constants and cases:
+    `results/guard_projection.json` (projection-only; no tok/s). Historical
+    dual-from-empty peaks: W1 98 GB / G1 102 GB.
 
 12. **The SSD cache grows to its cap by design — that's fine, disk is not the
     problem.** `ssd_cache_max_size: "auto"` resolved to a self-managed 185.8 GB LRU;

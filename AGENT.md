@@ -35,10 +35,10 @@ Read this top to bottom before touching anything.
    Check the port is free before any relaunch — on conflict the NEW instance dies
    and the OLD one keeps serving with whatever flags it was started with.
 
-7. **Do not enable MTP** (`mtp_enabled: true`) without re-benchmarking **this
-   box / this checkpoint**: measured 60.9 tok/s solo with it on vs ~86 off.
-   Unmeasured under load until `results/mtp_on_off.json`. It is off in every
-   config file in this repo on purpose.
+7. **Do not enable MTP** (`mtp_enabled: true`) on this box / this checkpoint.
+   Solo 60.9 tok/s on vs ~86 off. Load receipt: `results/mtp_on_off.json`
+   (8-way short jobs). Short-load did not win (mean wall ~11.5 s on vs ~4.8 s
+   off). It is off in every config file in this repo on purpose.
 
 8. **Fail closed.** If `scripts/verify.sh` reports a miss, stop and fix — do not
    declare success with degraded settings. A stack serving 131072-ctx instead of

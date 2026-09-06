@@ -10,7 +10,7 @@ This recipe (128 GB, 8 HTTP slots)     Different lab (e.g. 256 GB single-stream)
 -----------------------------------    ---------------------------------------
 default: 1 x ~240k head + short slots  single-stream *decode* / ANE / MTP draft
 historical dual 484 / 488 s (08-31)    different memory regime — do not port here
-generation tok/s: pending paired JSON  do not compare 8-token dummy walls to that
+generation tok/s: results/decode_table.json   do not compare 8-token dummy walls to that
 ```
 
 
@@ -136,7 +136,8 @@ checkpoint.
 solo anecdote 60.9 tok/s on vs ~86 off, and `results/mtp_on_off.json` 8-way
 short-load (off mean 6.00 s vs on 12.83 s). Upstream 0.6.4 notes claim Lightning
 MTP speedups on batch-one Flash-Next — see [docs/TRAPS.md](docs/TRAPS.md) #3.
-Leave MTP off. Decode protocol: [docs/DECODE.md](docs/DECODE.md).
+Leave MTP off. Decode protocol + receipt: [docs/DECODE.md](docs/DECODE.md) /
+[results/decode_table.json](results/decode_table.json).
 
 `setup.sh` patches both files. Missing files are a **fail** (start the server
 once so oMLX writes them, stop it, re-run setup.sh). oMLX version must be
@@ -265,7 +266,7 @@ Numbers: [docs/PROFILE.md](docs/PROFILE.md). Prefix policy:
 [docs/PREFIX_POLICY.md](docs/PREFIX_POLICY.md). Compatibility:
 [docs/COMPAT.md](docs/COMPAT.md). Decode protocol:
 [docs/DECODE.md](docs/DECODE.md). Unbacked comparisons:
-[docs/PENDING.md](docs/PENDING.md). File status for decode_table: results/README.md only.
+[docs/PENDING.md](docs/PENDING.md). File status for decode_table: [results/decode_table.json](results/decode_table.json).
 Version: [VERSION](VERSION) / [CHANGELOG.md](CHANGELOG.md).
 Issues: [CONTRIBUTING.md](CONTRIBUTING.md).
 

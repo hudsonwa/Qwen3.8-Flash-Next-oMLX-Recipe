@@ -10,7 +10,8 @@ EXACT = os.environ.get("OMLX_MODEL", "qwen38-flash-next-oq4e-mtp")
 
 
 def resolve(timeout=5):
-    url = BASE.rstrip("/") + "/v1/models"
+    root = BASE.rstrip("/")
+    url = root + "/models" if root.endswith("/v1") else root + "/v1/models"
     try:
         with urllib.request.urlopen(url, timeout=timeout) as r:
             data = json.load(r)

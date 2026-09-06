@@ -41,4 +41,5 @@ def machine_stamp() -> dict:
         "ram_gb": ram_gb,
         "arch": platform.machine(),
         "omlx": _cmd([omlx, "--version"]) if os.path.isfile(omlx) else None,
+        "hf_revision": hf_revision(),
     }

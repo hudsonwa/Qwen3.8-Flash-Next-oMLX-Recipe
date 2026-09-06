@@ -1,9 +1,9 @@
 # DECODE protocol
 
 Do **not** headline 8-token dummy completions. This file is the protocol.
-The receipt `results/decode_table.json` is **not in git** until a 128 GB Mac
-run writes it. File status lives in [results/README.md](../results/README.md)
-only.
+Receipt: [results/decode_table.json](../results/decode_table.json) (128 GB Mac,
+2026-09-07, n=3, solo and short8). Cite the JSON; do not copy tok/s into a
+second headline.
 
 ## Command
 
@@ -30,5 +30,5 @@ with hot=12GB.
 - Pair `--label baseline` then `--label recipe`. `compare.py` refuses a lone series.
 - Does not toggle MTP or rewrite `~/.omlx`.
 
-Until `decode_table.json` exists, do not invent tok/s. Short-load MTP walls
-stay in `results/mtp_on_off.json` and are **not** this table.
+Short-load MTP walls stay in `results/mtp_on_off.json` and are **not** this
+table. Do not average solo with short8. Do not mix MTP-on with MTP-off.

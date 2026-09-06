@@ -22,7 +22,8 @@ Hot-cache receipts **also** require `hot_cache_max_size` (string, e.g. `"0"` or 
 
 **Measurement (full keys):** `single_head_latency.json`, `prefix_hit_miss.json`,
 `context_scaling.json`, `two_lane_latency.json`, `latency_percentiles.json`,
-`ab_sweep.json`, `ab_8vs4_live.json`, `mtp_on_off.json`, `hot_cache_one_brain.json`.
+`ab_sweep.json`, `ab_8vs4_live.json`, `mtp_on_off.json`, `hot_cache_one_brain.json`,
+`decode_table.json`.
 
 **Snapshot:** `hot_cache_current.json` — live flags, not a battery. Still needs
 `machine`, `omlx`, `hot_cache_max_size`.
@@ -35,10 +36,9 @@ Hot-cache receipts **also** require `hot_cache_max_size` (string, e.g. `"0"` or 
 `p4_combined_results.json`. CI requires parse-only. Do not delete them to
 “fix” schema.
 
-## Unpublished
+## Decode table
 
-`decode_table.json` is **not** in git. Protocol: [docs/DECODE.md](../docs/DECODE.md).
-List that gap in **this folder’s** [README.md](README.md) only.
+`decode_table.json` is a measurement receipt. Protocol: [docs/DECODE.md](../docs/DECODE.md).
 
 ## CI
 

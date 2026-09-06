@@ -30,7 +30,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from machine_stamp import machine_stamp  # noqa: E402
+from machine_stamp import hf_revision, machine_stamp  # noqa: E402
 from resolve_model import resolve  # noqa: E402
 
 PROMPTS = ("code", "prose", "counting")
@@ -174,18 +174,72 @@ def main() -> int:
             }
     out = Path(args.out)
     data = json.loads(out.read_text()) if out.exists() else {"recipe": "decode table", "runs": {}}
-    data["machine"] = machine_stamp()
+    data["runs"]["%s_%s" % (args.label, args.mode)] = series
+    stamp_decode_receipt(data, n=args.n)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(data, indent=2) + "\n")
+    print("wrote", out, "key", "%s_%s" % (args.label, args.mode))
+    return 0
+
+
+def stamp_decode_receipt(data: dict, n: int) -> None:
+    """Top-level SCHEMA keys. Both labels hit live daily serving (no config toggle)."""
+    import re
+    ms = machine_stamp()
+    data["machine"] = ms
+    raw = str(ms.get("omlx") or "")
+    m = re.search(r"\d+\.\d+\.\d+", raw)
+    data["omlx"] = m.group(0) if m else raw or None
+    data["hf_revision"] = hf_revision()
+    data["n"] = n
+    data["profile"] = "daily-hot-0"
+    data["hot_cache_max_size"] = "0"
+    data["temperature"] = 0
+    data["thinking"] = False
     data["metrics"] = {
         "prefill_tok_s": "prompt_tokens / TTFT_s (time to first streamed token)",
         "generation_tok_s": "(completion_tokens - 1) / (wall_s - TTFT_s)",
         "cache": "unique [variant salt] suffix; cached_tokens should be 0",
         "modes": "solo and short8 are separate series; do not average",
     }
-    data["runs"]["%s_%s" % (args.label, args.mode)] = series
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(data, indent=2) + "\n")
-    print("wrote", out, "label", args.label)
-    return 0
+    data["pairing_note"] = (
+        "baseline_* and recipe_* are labels on the live daily serving stack "
+        "(hot=0, max_concurrent_requests=8, MTP off). benchmark.py does not "
+        "toggle ~/.omlx. Not a stock-scheduler vs recipe engine swap."
+    )
+    pts = []
+    fails = []
+    for key, series in (data.get("runs") or {}).items():
+        if series.get("thinking") is not False:
+            fails.append("%s thinking not off" % key)
+        if series.get("temperature") != 0:
+            fails.append("%s temperature != 0" % key)
+        for name, rec in (series.get("prompts") or {}).items():
+            for run in rec.get("runs") or []:
+                if run.get("warmup"):
+                    continue
+                jobs = run.get("jobs")
+                rows = jobs if isinstance(jobs, list) else [run]
+                for j in rows:
+                    if not j:
+                        fails.append("%s/%s empty job" % (key, name))
+                        continue
+                    if j.get("error"):
+                        fails.append("%s/%s %s" % (key, name, j["error"]))
+                    pt = j.get("prompt_tokens")
+                    if pt:
+                        pts.append(int(pt))
+                    cached = j.get("cached_tokens")
+                    if cached:
+                        fails.append("%s/%s cached_tokens=%s (cold row must be 0)" %
+                                     (key, name, cached))
+                    if not j.get("generation_tok_s"):
+                        fails.append("%s/%s missing generation_tok_s" % (key, name))
+                    if not j.get("prefill_tok_s"):
+                        fails.append("%s/%s missing prefill_tok_s" % (key, name))
+    data["prompt_tokens"] = pts
+    data["fails"] = fails
+    data["pass"] = not fails
 
 
 if __name__ == "__main__":

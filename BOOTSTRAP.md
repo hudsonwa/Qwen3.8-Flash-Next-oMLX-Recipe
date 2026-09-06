@@ -70,6 +70,9 @@ bash setup.sh
 ```
 
 Dry run (no writes): `bash setup.sh --bootstrap-check` (issue #51).
+`--restore` copies the newest `settings.json.bak.<utc>` /
+`model_settings.json.bak.<utc>` beside each file. Fail closed if no bak.
+`--restore --bootstrap-check` prints paths and must not write.
 
 ## (g) Serve daily flags
 

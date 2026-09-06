@@ -13,23 +13,26 @@ STATE=""
 BOOTSTRAP_CHECK=0
 HOT_12G=0
 PRINT_BOOTSTRAP=0
+RESTORE=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --install-agent) INSTALL_AGENT=1 ;;
     --bootstrap-check) BOOTSTRAP_CHECK=1 ;;
     --print-bootstrap) PRINT_BOOTSTRAP=1 ;;
     --hot-cache-12gb) HOT_12G=1 ;;
+    --restore) RESTORE=1 ;;
     --state)
       shift
       STATE="${1:-}"
       [ -n "$STATE" ] || { echo "FAIL: gate=args --state needs a directory" >&2; exit 1; }
       ;;
     -h|--help)
-      echo "usage: bash setup.sh [--install-agent] [--state DIR] [--bootstrap-check] [--print-bootstrap] [--hot-cache-12gb]"
+      echo "usage: bash setup.sh [--install-agent] [--state DIR] [--bootstrap-check] [--print-bootstrap] [--hot-cache-12gb] [--restore]"
       echo "  --state DIR         isolated config dir (does not mutate ~/.omlx)"
       echo "  --bootstrap-check   dry run: same gates, no writes; names the missing gate on failure"
       echo "  --print-bootstrap   print BOOTSTRAP.md with pins filled in (no writes)"
       echo "  --hot-cache-12gb    optional one-brain RAM variant (not daily default)"
+      echo "  --restore           restore settings.json / model_settings.json from newest *.bak.<utc>"
       echo "setup.sh is the config patcher. Fetch bits with scripts/fetch-pins.sh."
       exit 0
       ;;
@@ -142,6 +145,34 @@ print("==> SHA256 manifest OK (%s)" % manifest)
 PY
 fi
 [ "$fail" = "1" ] && exit 1
+
+if [ "$RESTORE" = "1" ]; then
+  python3 - "$OMLX_CONF" "$BOOTSTRAP_CHECK" <<'PY'
+import sys
+from pathlib import Path
+conf = Path(sys.argv[1])
+dry = sys.argv[2] == "1"
+names = ("settings.json", "model_settings.json")
+todo = []
+for name in names:
+    dest = conf / name
+    cands = sorted(p for p in dest.parent.glob(name + ".bak.*") if p.is_file())
+    if not cands:
+        print("FAIL: gate=restore no bak for %s (looked for %s.bak.<utc>)" % (dest, name), file=sys.stderr)
+        sys.exit(1)
+    src = cands[-1]
+    todo.append((src, dest))
+for src, dest in todo:
+    print("RESTORE src=%s dest=%s%s" % (src, dest, " (dry-run, no write)" if dry else ""))
+    if not dry:
+        dest.write_bytes(src.read_bytes())
+if dry:
+    print("PASS: --restore --bootstrap-check (no writes)")
+    sys.exit(0)
+print("PASS: restored %d file(s) from newest bak" % len(todo))
+PY
+  [ "$BOOTSTRAP_CHECK" = "1" ] && exit 0
+fi
 
 if [ "$BOOTSTRAP_CHECK" = "1" ]; then
   if [ ! -f "$OMLX_CONF/settings.json" ]; then

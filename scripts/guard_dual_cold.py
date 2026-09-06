@@ -130,13 +130,23 @@ def self_test() -> int:
     # Must-pass: idle ~69 GB + one 252K (dual not requested).
     check("idle_one_252k", False, 69.0, 1, False)
     # Dual from empty: pending=1, now=69 < steady, proj=97.25 <= 102 → allowed.
+    check("idle_dual_from_empty", True, 69.0, 1, False)
     check("idle_dual_pending1", True, 69.0, 1, False)
+    # ~78 GB + single head (dual not requested) → allow. A static 74
+    # gate would fight a one-head settle near 78 GB.
+    check("steady78_single_head", False, 78.0, 0, False)
     # Dual from empty with two pending heads: proj=106.5 > 102 → refused.
     check("idle_dual_pending2", True, 69.0, 2, True)
     # Soft line.
     check("soft_fail", True, 96.8, 1, True)
     # Old static 74 would have missed 73; this must not.
     check("old_74_miss", True, 73.0, 1, True)
+    # Not a +31 GB addend: 69 + 31 = 100, which is not the projection.
+    plus31 = 69.0 + 31.0
+    p69 = projected_peak(69.0, 1)
+    if abs(plus31 - p69) < 1e-9:
+        fails.append("plus31_is_not_projection")
+    print("plus31 69+31 = %.2f vs projected 69+1 = %.2f (must differ)" % (plus31, p69))
 
     # Projection arithmetic (no tok/s).
     p73 = projected_peak(73.0, 1)

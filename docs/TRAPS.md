@@ -91,9 +91,16 @@ stated). Not folklore.
 16. **Short ticks during a dual 252K fill are not ~1 s.** G1 `tick-1` was
     **24.91 s** (`results/omlx_flash_2way_results.json`), then 1.34 s / 1.31 s.
     Cite 24.91 s when talking about a tick on top of a dual cold fill.
+    **L1+L5 confound:** that ~25 s tick is not the L5 4–12 s short-during-fill.
 
 17. **Daily hot cache is off (`hot_cache_max_size: "0"`).** Optional `--hot-cache-max-size 12GB`
     is one-head RAM residency, not a second orchestrator. Cite [PROFILE.md](PROFILE.md).
     `10%` is not a valid size. Launchd daily argv omits the flag (hot=0).
+    8.7 s / 229 s and 8.3–9.0 s / 256 s cites were measured with the hot tier
+    **off / unset**; after the one-brain A/B they are config-specific.
+
+18. **12 s short-during-fill stays OPEN.** L5 `results/two_lane_latency.json`
+    shorts during a single ~240k fill are **4–12 s**. Do not close this issue.
+    Not solved. Not the G1 24.91 s dual-fill tick.
 
 

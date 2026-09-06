@@ -187,9 +187,11 @@ Slot rate: ~9.25 GB per 252K slot, ~1.2 GB per 32K, ~2.3 GB per 64K.
 **SSD tier:** `~/.omlx/ssd-cache` with max size `auto` resolved to a
 self-managed **185.8 GB LRU** on the reference machine. One measured D2
 pair: re-promoting a 252K prefix from SSD took **8.7 s** vs **~229 s**
-full re-prefill on an LRU miss. That is not a guarantee both orchestrators
-stay warm — two 252K prefixes may not both stay cached. Keep ~100 GB free
-on the cache volume.
+full re-prefill on an LRU miss. **Hot-tier caveat:** those walls were measured
+with the hot cache **off / unset**. After the one-brain A/B they are
+config-specific (hot=0 disk vs optional 12 GB RAM — [PROFILE.md](docs/PROFILE.md)).
+That is not a guarantee both orchestrators stay warm — two 252K prefixes may
+not both stay cached. Keep ~100 GB free on the cache volume.
 
 ## Operating rules (all measured)
 
@@ -198,14 +200,16 @@ on the cache volume.
    (`python3 scripts/warm-8slot.py --dual-head` only). Do not revert this.
    Plan to 102 GB against the 107.5 GB Metal cap. Soft 96.8 GB is a fail.
    Two fill transients on a resident stack can cross the cap. One D2 pair:
-   8.7 s SSD hit vs ~229 s miss; two 252K prefixes may not both stay in the LRU.
+   8.7 s SSD hit vs ~229 s miss (hot tier **off / unset**; config-specific after
+   the one-brain A/B). Two 252K prefixes may not both stay in the LRU.
    (`scripts/guard_dual_cold.py` — see TRAPS #11 / `results/guard_projection.json`.)
 2. **Verify the advertised context after every boot** (`scripts/verify.sh`):
    per-model `max_context_window` is not always honored. Trust `/v1/models`,
    not the settings file.
-3. **Salt every repeated benchmark prompt** (`[variant <tag>]` suffix):
-   identical fillers hit the prefix cache and wall-times collapse
-   (12.1 s → 3.4 s measured).
+3. **Split salt.** Benchmark prompts get `[variant <tag>]` on the tail.
+   Production prefixes stay **byte-identical** (no variant salt). See
+   [docs/PREFIX_POLICY.md](docs/PREFIX_POLICY.md). Unsalted *benchmark* repeats
+   hit the prefix cache and collapse walls (12.1 s → 3.4 s measured).
 4. Read memory with `/usr/bin/footprint <pid>`, never RSS — mmap'd weights lie.
 5. Stop by port, not by the wrapper process:
    `kill -TERM $(lsof -tnP -iTCP:8000 -sTCP:LISTEN)` — `omlx serve` spawns a
@@ -228,7 +232,16 @@ residency, not a second orchestrator. Canonical numbers:
 
 ## Concurrency (measured)
 
-Canonical table: [docs/PROFILE.md](docs/PROFILE.md). 27B-dense: [docs/BATTERY.md](docs/BATTERY.md) experiment 1. Unbacked mlx-serve / llama.cpp: [docs/PENDING.md](docs/PENDING.md).
+Canonical table: [docs/PROFILE.md](docs/PROFILE.md). Those miss/hit walls are
+**TTFT** (first streamed token), not completion tok/s.
+
+**L1+L5 confound:** do not read G1 dual-fill tick **24.91 s** (~25 s) as
+improving to L5 shorts-during-fill **4–12 s**. Different experiments
+(tick on a dual cold fill vs a short during a single ~240k fill). 4–12 s
+stays **OPEN**.
+
+27B-dense: [docs/BATTERY.md](docs/BATTERY.md) experiment 1. Unbacked mlx-serve /
+llama.cpp: [docs/PENDING.md](docs/PENDING.md).
 
 ## Verify (after every boot)
 
@@ -244,7 +257,8 @@ All measured traps: [docs/TRAPS.md](docs/TRAPS.md). MTP leave off (`mtp_on_off.j
 ## Results
 
 Raw JSON: [results/](results/) index in [results/README.md](results/README.md).
-Numbers: [docs/PROFILE.md](docs/PROFILE.md). Compatibility:
+Numbers: [docs/PROFILE.md](docs/PROFILE.md). Prefix policy:
+[docs/PREFIX_POLICY.md](docs/PREFIX_POLICY.md). Compatibility:
 [docs/COMPAT.md](docs/COMPAT.md). Decode protocol:
 [docs/DECODE.md](docs/DECODE.md). Unbacked comparisons:
 [docs/PENDING.md](docs/PENDING.md). File status for decode_table: results/README.md only.

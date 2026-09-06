@@ -12,8 +12,9 @@
   "steady_gb": 73.0,
   "one_head_fill_spike_gb": 19.0,
   "formula": "projected = now + pending_252k * slot_252k_gb + one_head_fill_spike_gb",
+  "note_not_plus31": "Projected peak is not now+31. Idle 69+31=100 is not the dual-from-empty projection (97.25). Guard uses the formula above.",
   "refuse": "dual 252K requested AND (projected > 102 OR now >= 96.8 OR now >= 73 steady)",
-  "why_not_static_74": "Steady after one 252K is 73 GB. A 74 GB cutoff would allow a second 252K on a resident fleet.",
+  "why_not_static_74": "Steady after one 252K is 73 GB. A 74 GB cutoff would allow a second 252K on a resident fleet. A 74 gate would also fight a one-head settle near 78 GB.",
   "sources": {
     "idle_gb": "README memory table: booted idle ~69 GB; TRAPS #8",
     "one_head_peak_gb": "results/single_head_latency.json peak_gb 88 (2026-09-06)",
@@ -38,6 +39,22 @@
       "projected_gb": 97.25,
       "refuse": false,
       "why": "dual not requested; idle + one 252K is the default path"
+    },
+    "must_pass_idle_dual_from_empty": {
+      "now_gb": 69.0,
+      "pending_252k": 1,
+      "dual": true,
+      "projected_gb": 97.25,
+      "refuse": false,
+      "why": "idle ~69 + dual-from-empty: now < 73 and projected 97.25 <= plan 102"
+    },
+    "must_pass_78_single_head": {
+      "now_gb": 78.0,
+      "pending_252k": 0,
+      "dual": false,
+      "projected_gb": 97.0,
+      "refuse": false,
+      "why": "~78 + single head: dual not requested; do not fight one-head settle with a static 74 gate"
     }
   },
   "machine": {

@@ -13,10 +13,12 @@ Read this top to bottom before touching anything.
    walls, and require small spread (≤ ~5 s per equal-size pair). `scripts/warm-8slot.py`
    implements this and writes a JSON receipt. Never report a pass without the receipt.
 
-3. **Salt every repeated prompt.** Append a unique `[variant <tag>]` to fillers.
-   oMLX's prefix cache turns identical repeats into cache hits and collapses your
-   wall-times (12.1 s → 3.4 s measured on an 11K filler). Unsalted repeat
-   measurements are contaminated — discard them.
+3. **Split salt.** Benchmark prompts get `[variant <tag>]` on the tail.
+   Production prefixes stay **byte-identical** (no variant salt) — see
+   [docs/PREFIX_POLICY.md](docs/PREFIX_POLICY.md). oMLX's prefix cache turns
+   identical *benchmark* repeats into cache hits and collapses wall-times
+   (12.1 s → 3.4 s measured on an 11K filler). Unsalted repeat measurements
+   are contaminated — discard them.
 
 4. **Memory: use `/usr/bin/footprint <pid>`.** RSS reads ~21 GB while the real
    footprint is ~69 GB (mmap'd weights, pooled buffers). Budget against the 107.5 GB

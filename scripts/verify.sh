@@ -59,7 +59,7 @@ export PORT
 mname="$(OMLX_REQUIRE_LIVE=1 /usr/bin/python3 "$HERE/resolve_model.py" 2>/dev/null || true)"
 if [ -z "$mname" ]; then miss "could not resolve model name from /v1/models"; fi
 gen="$(curl -s -m 60 "$BASE/v1/chat/completions" -H 'Content-Type: application/json' \
-  -d "{\"model\":\"${mname}\",\"max_tokens\":8,\"temperature\":0,\"messages\":[{\"role\":\"user\",\"content\":\"Reply with the single word: READY\"}]}" \
+  -d "{\"model\":\"${mname}\",\"max_tokens\":8,\"temperature\":0,\"chat_template_kwargs\":{\"enable_thinking\":false},\"messages\":[{\"role\":\"user\",\"content\":\"Reply with the single word: READY\"}]}" \
   | /usr/bin/python3 -c 'import json,sys
 try:
     d=json.load(sys.stdin); print(d["choices"][0]["message"]["content"][:40])

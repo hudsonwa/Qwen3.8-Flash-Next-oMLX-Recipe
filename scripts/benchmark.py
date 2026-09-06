@@ -107,8 +107,13 @@ def main() -> int:
     ap.add_argument("--max-tokens", type=int, default=256)
     ap.add_argument("--warmup", type=int, default=1)
     ap.add_argument("--mode", choices=["solo", "short8"], default="solo")
-    ap.add_argument("--out", default=str(ROOT / "results" / "decode_table.json"))
+    ap.add_argument("--out", default=str(ROOT / "results" / "decode_table_issue64.json"))
     args = ap.parse_args()
+    if Path(args.out).name == "decode_table.json":
+        print("refuse: results/decode_table.json is the Issue 9 receipt; "
+              "this script writes the #64 archive (decode_table_issue64.json)",
+              file=sys.stderr)
+        return 2
     if args.max_tokens < 32:
         print("refuse: --max-tokens < 32 is an 8-token dummy, not a decode table",
               file=sys.stderr)

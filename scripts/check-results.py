@@ -26,6 +26,7 @@ MEASUREMENT = {
     "mtp_on_off.json",
     "hot_cache_one_brain.json",
     "decode_table.json",
+    "decode_table_issue64.json",
     "quality_canary.json",
 }
 HOT = {

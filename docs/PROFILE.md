@@ -24,7 +24,7 @@ Notes locked to those files:
 - Miss class ~238 s (A 237.8 s) / ~256 s (`prefix_hit_miss.json`).
 - **L1+L5 confound:** G1 dual-fill tick ~25 s is not L5 shorts-during-fill 4–12 s.
 - `results/mtp_on_off.json` exists (short-load only; off mean 6.00 s vs on 12.83 s). Leave MTP off. Solo anecdote ~60.9 vs ~86 stays in [PROVENANCE.md](PROVENANCE.md). Upstream conflict: [TRAPS.md](TRAPS.md) #3.
-- Decode tok/s: [results/decode_table.json](../results/decode_table.json) (n=3, 2026-09-07, solo + short8; protocol [DECODE.md](DECODE.md)). Cite the JSON. Not 8-token dummy walls. Not MTP short-load.
+- Decode tok/s: [results/decode_table.json](../results/decode_table.json) (Issue 9 / #86, 2026-09-07; protocol [DECODE.md](DECODE.md)). Cite the JSON. Not 8-token dummy walls. Not MTP short-load. #64 solo+short8 archive: [results/decode_table_issue64.json](../results/decode_table_issue64.json).
 - Ticks: G1 `tick-1` **24.91 s**; W1 **11.26 s** and **1.12 s**. Shorts during a single long fill **4–12 s** (`results/two_lane_latency.json`) — OPEN.
 - Soft 96.8 GB = fail. Plan 102 GB. Metal cap 107.5 GB.
 - **n:** current rows above are n=3. Historical dual is **n=1 battery** (not current). `hot_cache_current.json` is an **n=1 snapshot**, not a daily headline. Do not average mixed dates, mixed oMLX builds, or hot=0 with hot=12GB.

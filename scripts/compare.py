@@ -18,7 +18,8 @@ REQUIRED = ("baseline_solo", "recipe_solo", "baseline_short8", "recipe_short8")
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--in", dest="src", default=str(ROOT / "results" / "decode_table.json"))
+    ap.add_argument("--in", dest="src",
+                    default=str(ROOT / "results" / "decode_table_issue64.json"))
     args = ap.parse_args()
     p = Path(args.src)
     if not p.exists():

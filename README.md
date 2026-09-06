@@ -17,14 +17,21 @@ generation tok/s: results/decode_table.json
 
 These numbers are from **one dedicated 128 GB Apple Silicon Mac** (M5 Max-class,
 macOS 26) unless a newer file is in `results/`. They are **not portable**.
-**No second-machine reproduction exists** in this repo unless you commit one
-(even a 60k fill + `scripts/verify.sh`). Matrix: [docs/HARDWARE.md](docs/HARDWARE.md).
+**Zero independent reproductions** as of [VERSION](VERSION). A second machine
+does not exist in git unless you commit a receipt (even a 60k fill +
+`scripts/verify.sh`). Matrix: [docs/HARDWARE.md](docs/HARDWARE.md).
+Scope: [docs/SCOPE.md](docs/SCOPE.md).
 
 - Metal working-set cap ≈ **107.5 GB** (not “128 GB RAM”). Planning peak = **102 GB**.
   Soft **96.8 GB** is a fail.
 - Keep ~**100 GB free** on the SSD cache volume (`~/.omlx/ssd-cache`).
 - Do **not** also run a second GPU-heavy app on this machine.
 - Two 252K prefixes may not both stay in the LRU.
+- **Install** hits GitHub (oMLX DMG) and Hugging Face (checkpoint). **Inference**
+  after that can stay on the Mac.
+- The **repo name is a dated snapshot**, not a product line.
+- **08-31 dual-252K** is historical **n=1**, not the daily warm path.
+- **Launchd KeepAlive** is **opt-in only** (`bash setup.sh --install-agent`).
 
 Canonical numbers: **[docs/PROFILE.md](docs/PROFILE.md)** (locked to `results/*.json`).
 Do not copy those seconds into a second headline here.

@@ -14,7 +14,7 @@ It is **not**:
 Do **not** package the harness (`scripts/warm-8slot.py`, `scripts/benchmark.py`,
 canaries) as a pip module or product.
 
-## Facts that stay true (as of VERSION)
+## Facts that stay true (as of the string in [VERSION](../VERSION))
 
 - **One dedicated box.** Numbers are from one 128 GB Apple Silicon Mac. See
   [HARDWARE.md](HARDWARE.md).

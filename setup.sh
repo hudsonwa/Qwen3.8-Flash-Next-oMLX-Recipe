@@ -12,65 +12,88 @@ INSTALL_AGENT=0
 STATE=""
 BOOTSTRAP_CHECK=0
 HOT_12G=0
+PRINT_BOOTSTRAP=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --install-agent) INSTALL_AGENT=1 ;;
     --bootstrap-check) BOOTSTRAP_CHECK=1 ;;
+    --print-bootstrap) PRINT_BOOTSTRAP=1 ;;
     --hot-cache-12gb) HOT_12G=1 ;;
     --state)
       shift
       STATE="${1:-}"
-      [ -n "$STATE" ] || { echo "FAIL: --state needs a directory" >&2; exit 1; }
+      [ -n "$STATE" ] || { echo "FAIL: gate=args --state needs a directory" >&2; exit 1; }
       ;;
     -h|--help)
-      echo "usage: bash setup.sh [--install-agent] [--state DIR] [--bootstrap-check] [--hot-cache-12gb]"
+      echo "usage: bash setup.sh [--install-agent] [--state DIR] [--bootstrap-check] [--print-bootstrap] [--hot-cache-12gb]"
       echo "  --state DIR         isolated config dir (does not mutate ~/.omlx)"
-      echo "  --bootstrap-check   dry run: same gates, no writes; exit 0 only if setup.sh would succeed"
+      echo "  --bootstrap-check   dry run: same gates, no writes; names the missing gate on failure"
+      echo "  --print-bootstrap   print BOOTSTRAP.md with pins filled in (no writes)"
       echo "  --hot-cache-12gb    optional one-brain RAM variant (not daily default)"
+      echo "setup.sh is the config patcher. Fetch bits with scripts/fetch-pins.sh."
       exit 0
       ;;
-    *) echo "FAIL: unknown argument: $1" >&2; exit 1 ;;
+    *) echo "FAIL: gate=args unknown argument: $1" >&2; exit 1 ;;
   esac
   shift
 done
 EXACT_MODEL_ID="qwen38-flash-next-oq4e-mtp"
 OMLX_CONF="${STATE:-$HOME/.omlx}"
-
-OS="$(uname -s)"; ARCH="$(uname -m)"
-MEM_GB=$(( $(sysctl -n hw.memsize 2>/dev/null || echo 0) / 1024 / 1024 / 1024 ))
-
-echo "==> machine: $OS $ARCH, ${MEM_GB} GB unified memory"
-if [ "$OS" != "Darwin" ] || [ "$ARCH" != "arm64" ]; then
-  echo "FAIL: this recipe is Apple Silicon (Darwin arm64) only" >&2; exit 1
-fi
-if [ "$MEM_GB" -lt 128 ]; then
-  echo "FAIL: measured shape needs 128 GB unified memory (found ${MEM_GB})" >&2; exit 1
-fi
-
 OMLX_BIN="${OMLX_BIN:-$HOME/.omlx/bin/omlx}"
 MODEL_SRC="${MODEL_SRC:-$HOME/models/qwen38-flash-next-oq4e-mtp}"
 MODEL_DIR="${MODEL_DIR:-$HOME/models/omlx-qwen38}"
 PORT="${PORT:-8000}"
 OMLX_VERSION_PIN="${OMLX_VERSION_PIN:-0.6.4}"
 HF_REVISION_PIN="${HF_REVISION_PIN:-2615fc0e976e65c2f3b55daca3a948f1cdc5b9f8}"
+HF_ID="${HF_ID:-Jundot/Qwen3.8-Flash-Next-oQ4e-mtp}"
+DMG_NAME="${OMLX_DMG_NAME:-oMLX-0.6.4-macos26-27.dmg}"
+DMG_SHA="${OMLX_DMG_SHA:-53f1506c2385e8920a67198b72d1fe09351c1b3538be9c6bdeb78e5277d06d93}"
+DMG_SIZE="${OMLX_DMG_SIZE:-805799490}"
+
+if [ "$PRINT_BOOTSTRAP" = "1" ]; then
+  echo "PINS filled in from this recipe:"
+  echo "  oMLX_VERSION_PIN=$OMLX_VERSION_PIN"
+  echo "  HF_ID=$HF_ID"
+  echo "  HF_REVISION_PIN=$HF_REVISION_PIN"
+  echo "  DMG_NAME=$DMG_NAME"
+  echo "  DMG_SHA256=$DMG_SHA"
+  echo "  DMG_SIZE_BYTES=$DMG_SIZE"
+  echo "  EXACT_MODEL_ID=$EXACT_MODEL_ID"
+  echo "  fetch: bash scripts/fetch-pins.sh"
+  echo "  patch: bash setup.sh"
+  echo "---- BOOTSTRAP.md ----"
+  cat BOOTSTRAP.md
+  exit 0
+fi
+
+OS="$(uname -s)"; ARCH="$(uname -m)"
+MEM_GB=$(( $(sysctl -n hw.memsize 2>/dev/null || echo 0) / 1024 / 1024 / 1024 ))
+
+echo "==> machine: $OS $ARCH, ${MEM_GB} GB unified memory"
+if [ "$OS" != "Darwin" ] || [ "$ARCH" != "arm64" ]; then
+  echo "FAIL: gate=darwin-arm64 this recipe is Apple Silicon (Darwin arm64) only" >&2; exit 1
+fi
+if [ "$MEM_GB" -lt 128 ]; then
+  echo "FAIL: gate=mem-128 measured shape needs 128 GB unified memory (found ${MEM_GB})" >&2; exit 1
+fi
 
 fail=0
 if [ ! -x "$OMLX_BIN" ]; then
-  echo "MISSING: oMLX CLI shim at $OMLX_BIN (see MODELS.md section 1)"; fail=1
+  echo "FAIL: gate=omlx-cli MISSING oMLX CLI shim at $OMLX_BIN (see MODELS.md section 1)"; fail=1
 else
   raw_ver="$("$OMLX_BIN" --version 2>/dev/null || true)"
   ver="$(printf '%s' "$raw_ver" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)"
   echo "==> oMLX version: ${raw_ver:-unknown} (parsed ${ver:-none})"
   if [ "$ver" != "$OMLX_VERSION_PIN" ]; then
-    echo "FAIL: oMLX version '$ver' != pin $OMLX_VERSION_PIN" >&2
+    echo "FAIL: gate=omlx-version oMLX version '$ver' != pin $OMLX_VERSION_PIN" >&2
     fail=1
   fi
 fi
 if [ ! -d "$MODEL_SRC" ]; then
-  echo "MISSING: model dir $MODEL_SRC (see MODELS.md section 2)"; fail=1
+  echo "FAIL: gate=model-dir MISSING model dir $MODEL_SRC (see MODELS.md section 2)"; fail=1
 else
   if [ ! -f "$MODEL_SRC/config.json" ]; then
-    echo "FAIL: $MODEL_SRC has no config.json — not a checkpoint dir" >&2
+    echo "FAIL: gate=config-json $MODEL_SRC has no config.json — not a checkpoint dir" >&2
     fail=1
   fi
   got=""
@@ -78,11 +101,11 @@ else
     got="$(tr -d '[:space:]' < "$MODEL_SRC/.hf_revision")"
   fi
   if [ -z "$got" ]; then
-    echo "FAIL: $MODEL_SRC/.hf_revision missing. After a pinned download, run:" >&2
+    echo "FAIL: gate=hf-revision $MODEL_SRC/.hf_revision missing. After a pinned download, run:" >&2
     echo "      echo $HF_REVISION_PIN > $MODEL_SRC/.hf_revision" >&2
     fail=1
   elif [ "$got" != "$HF_REVISION_PIN" ]; then
-    echo "FAIL: model revision '$got' != pin $HF_REVISION_PIN" >&2
+    echo "FAIL: gate=hf-revision model revision '$got' != pin $HF_REVISION_PIN" >&2
     fail=1
   else
     echo "==> model revision $got (OK)"
@@ -115,11 +138,11 @@ fi
 
 if [ "$BOOTSTRAP_CHECK" = "1" ]; then
   if [ ! -f "$OMLX_CONF/settings.json" ]; then
-    echo "FAIL: $OMLX_CONF/settings.json missing — a real setup.sh would fail" >&2
+    echo "FAIL: gate=settings.json $OMLX_CONF/settings.json missing — a real setup.sh would fail" >&2
     exit 1
   fi
   if [ ! -f "$OMLX_CONF/model_settings.json" ]; then
-    echo "FAIL: $OMLX_CONF/model_settings.json missing — a real setup.sh would fail" >&2
+    echo "FAIL: gate=model_settings.json $OMLX_CONF/model_settings.json missing — a real setup.sh would fail" >&2
     exit 1
   fi
   echo "PASS: --bootstrap-check (no writes). A subsequent bash setup.sh would succeed on these gates."

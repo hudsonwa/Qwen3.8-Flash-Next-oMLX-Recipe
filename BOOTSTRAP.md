@@ -2,6 +2,8 @@
 
 `setup.sh` does **not** install oMLX and does **not** download weights.
 It only checks pins, patches config, and renders `scripts/serve-flash.sh`.
+Fetch: `bash scripts/fetch-pins.sh` (DMG SHA + hf download only).
+Print this file with pins filled in: `bash setup.sh --print-bootstrap`.
 
 Daily profile (unchanged by PR #48): **1×252K head + short slots**, MTP **off**,
 `hot_cache_max_size=0`, `max_concurrent_requests=8`, oMLX **0.6.4**, HF rev in

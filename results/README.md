@@ -10,7 +10,8 @@ Dated receipts. Do not mix revisions.
 | `context_scaling.json` | L3 / #42: walls at ~240k/~120k/~60k measured | 2026-09-06 |
 | `two_lane_latency.json` | L5 / #44: short lane vs ~240k fill | 2026-09-06 |
 | `latency_percentiles.json` | L7 / #46: queue/TTFT/ITL p50/p95/p99 | 2026-09-06 |
-| `ab_sweep.json` | L8 / #47: short 8-way chunked on/off; burst=balanced | 2026-09-06 |
+| `ab_sweep.json` | L8 / #47: short 8-way chunked on/off; real mc=4 after bootout | 2026-09-06 |
+| `ab_8vs4_live.json` | L8 / #47: same-session 8 vs 4 (launchd gone, serve argv 4) | 2026-09-06 |
 | `mtp_on_off.json` | L8 / #15: MTP off vs on under 8-way load, peak_gb | 2026-09-06 |
 | `omlx_flash_2way_results.json` | Flash-Next 2-way / G1 102 GB | 2026-08-31 |
 | `omlx27_4way_results.json` | 27B dense 4×118K FIFO vs chunked | 2026-08-31 |

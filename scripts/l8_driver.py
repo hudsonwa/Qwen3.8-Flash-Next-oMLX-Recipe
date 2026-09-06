@@ -223,7 +223,8 @@ def main():
     arms.append(measure_arm("mc8_chunked_on", 8))
     mtp_off = measure_arm("mtp_off_load8", 8)
 
-    # 2. mc=4 short
+    # 2. settings.json mc=4 is NOT a live 4-cap while LaunchAgent argv pins 8.
+    # Real 8-vs-4: scripts/l8_mc_real.py (bootout, serve --max-concurrent-requests 4).
     patch_settings({"scheduler.max_concurrent_requests": 4})
     restart()
     arms.append(measure_arm("mc4_chunked_on", 4))

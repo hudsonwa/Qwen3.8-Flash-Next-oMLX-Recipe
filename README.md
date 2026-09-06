@@ -234,8 +234,8 @@ Canonical table: [docs/PROFILE.md](docs/PROFILE.md). 27B-dense: [docs/BATTERY.md
 
 1. `/v1/models` advertises `max_model_len: 262144`.
 2. Boot log shows the enforcer from **this** boot.
-3. `footprint <pid>`: idle ~69 GB.
-4. One live generation, then `scripts/warm-8slot.py` if you want the full receipt.
+3. `footprint <pid>`: idle **60–80 GB** band (typical ~69).
+4. One live generation containing READY, then `scripts/warm-8slot.py` if you want the full receipt.
 
 ## Traps and scaling limits
 
@@ -244,8 +244,12 @@ All measured traps: [docs/TRAPS.md](docs/TRAPS.md). MTP leave off (`mtp_on_off.j
 ## Results
 
 Raw JSON: [results/](results/) index in [results/README.md](results/README.md).
-Numbers: [docs/PROFILE.md](docs/PROFILE.md). Unbacked comparisons:
-[docs/PENDING.md](docs/PENDING.md). `decode_table.json` is unpublished.
+Numbers: [docs/PROFILE.md](docs/PROFILE.md). Compatibility:
+[docs/COMPAT.md](docs/COMPAT.md). Decode protocol:
+[docs/DECODE.md](docs/DECODE.md). Unbacked comparisons:
+[docs/PENDING.md](docs/PENDING.md). File status for decode_table: results/README.md only.
+Version: [VERSION](VERSION) / [CHANGELOG.md](CHANGELOG.md).
+Issues: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Credits
 

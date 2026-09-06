@@ -36,7 +36,7 @@ Architecture: Qwen3.8 **Flash-Next** oQ4e, oMLX 0.6.4. **Canonical numbers:**
 [PROFILE.md](PROFILE.md). Dual-252K 08-31 is a historical row in that table,
 not the daily warm path.
 
-Competitive engine rows with no JSON: [PENDING.md](PENDING.md).
+Competitive engine rows: [PENDING.md](PENDING.md) — no receipt, no claim.
 
 Tick range to quote: G1 **24.91 s** and W1 **11.26 s** / **1.12 s** (cite
 PROFILE.md). Shorts during a single long fill 4–12 s remain OPEN.

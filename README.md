@@ -245,8 +245,8 @@ improving to L5 shorts-during-fill **4–12 s**. Different experiments
 (tick on a dual cold fill vs a short during a single ~240k fill). 4–12 s
 stays **OPEN**.
 
-27B-dense: [docs/BATTERY.md](docs/BATTERY.md) experiment 1. Unbacked mlx-serve /
-llama.cpp: [docs/PENDING.md](docs/PENDING.md).
+27B-dense (same runtime, different architecture): [docs/BATTERY.md](docs/BATTERY.md)
+experiment 1. Other engines: [docs/PENDING.md](docs/PENDING.md) (no receipt, no claim).
 
 ## Verify (after every boot)
 
@@ -257,7 +257,7 @@ llama.cpp: [docs/PENDING.md](docs/PENDING.md).
 
 ## Traps and scaling limits
 
-All measured traps: [docs/TRAPS.md](docs/TRAPS.md). MTP leave off (`mtp_on_off.json`, short-load). Second flash instance: 2× weights will not fit. llama.cpp comparison: [docs/PENDING.md](docs/PENDING.md).
+All measured traps: [docs/TRAPS.md](docs/TRAPS.md). MTP leave off (`mtp_on_off.json`, short-load). Second flash instance: 2× weights will not fit. Other engines: [docs/PENDING.md](docs/PENDING.md) (no receipt, no claim).
 
 ## Results
 

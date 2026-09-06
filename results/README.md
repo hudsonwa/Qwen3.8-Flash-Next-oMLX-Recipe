@@ -25,3 +25,7 @@ Dated receipts. Do not mix revisions.
 Every new JSON must include `machine` (chip, RAM, macOS, oMLX, date) from
 `scripts/machine_stamp.py` — except a projection-only file, which must cite
 receipt constants and must not invent tok/s.
+
+Current headlines need **n≥3**. #48 A/B is n=3. `hot_cache_current.json` is an
+n=1 snapshot tag, not daily. 08-31 files are historical n=1 batteries.
+See [SCHEMA.md](SCHEMA.md).

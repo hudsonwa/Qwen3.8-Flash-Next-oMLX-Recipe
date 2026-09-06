@@ -20,3 +20,4 @@ Notes locked to those files:
 - Decode tok/s protocol: [DECODE.md](DECODE.md). File status: [results/README.md](../results/README.md).
 - Ticks: G1 `tick-1` **24.91 s**; W1 **11.26 s** and **1.12 s**. Shorts during a single long fill **4–12 s** (`results/two_lane_latency.json`) — OPEN.
 - Soft 96.8 GB = fail. Plan 102 GB. Metal cap 107.5 GB.
+- **n:** current rows above are n=3. Historical dual is **n=1 battery** (not current). `hot_cache_current.json` is an **n=1 snapshot**, not a daily headline. Do not average mixed dates, mixed oMLX builds, or hot=0 with hot=12GB.

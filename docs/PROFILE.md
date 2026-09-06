@@ -17,6 +17,6 @@ Notes locked to those files:
 - Old ~8.5 s / ~8.7 s “hit” numbers are **SSD**, not RAM.
 - Miss class ~238 s (A 237.8 s) / ~256 s (`prefix_hit_miss.json`).
 - `results/mtp_on_off.json` exists (short-load only). Leave MTP off.
-- `results/decode_table.json` is **unpublished**.
+- Decode tok/s protocol: [DECODE.md](DECODE.md). File status: [results/README.md](../results/README.md).
 - Ticks: G1 `tick-1` **24.91 s**; W1 **11.26 s** and **1.12 s**. Shorts during a single long fill **4–12 s** (`results/two_lane_latency.json`) — OPEN.
 - Soft 96.8 GB = fail. Plan 102 GB. Metal cap 107.5 GB.

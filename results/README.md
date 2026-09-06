@@ -20,7 +20,7 @@ Dated receipts. Do not mix revisions.
 | `omlx_flash_2way_results.json` | Flash-Next 2-way / G1 102 GB | 2026-08-31 |
 | `omlx27_4way_results.json` | 27B dense 4×118K FIFO vs chunked | 2026-08-31 |
 | `p4_combined_results.json` | Dual-engine stress | 2026-08-31 |
-| `decode_table.json` | **Not published.** Pair `benchmark.py --label baseline` then `--label recipe` | — |
+| `decode_table.json` | **Not in git.** Protocol: [docs/DECODE.md](../docs/DECODE.md). Pair `benchmark.py --label baseline` then `--label recipe`. Do not invent tok/s. | — |
 
 Every new JSON must include `machine` (chip, RAM, macOS, oMLX, date) from
 `scripts/machine_stamp.py` — except a projection-only file, which must cite

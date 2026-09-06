@@ -19,8 +19,3 @@ Until that file exists, do not put mlx-serve numbers in README or BATTERY.
 **Claim:** FIFO staircase on llama.cpp. **Missing:** JSON in `results/`.
 27B-dense oMLX FIFO vs chunked **is** measured (`results/omlx27_4way_results.json`)
 and stays in [BATTERY.md](BATTERY.md) experiment 1.
-
-## decode_table.json
-
-Unpublished. Pair `scripts/benchmark.py --label baseline` then `--label recipe`.
-Do not invent tok/s.

@@ -46,11 +46,16 @@ echo 2615fc0e976e65c2f3b55daca3a948f1cdc5b9f8 \
 
 Quarantine dir (one symlink) is required by the launch commands — see MODELS.md.
 
-## (d) First serve so oMLX writes config
+## (d) Init config (do not start oMLX)
 
-Start the server **once** so it creates `~/.omlx/settings.json` and
-`~/.omlx/model_settings.json`. Then stop it (next step). Missing files are a
-**fail** for `setup.sh`.
+`bash setup.sh --init-config` writes the minimal `settings.json` and
+`model_settings.json` this recipe patches (`chunked_prefill`, mc=8, hot=0,
+exact model id, MTP off, ctx 262144, PLE offload) into `--state DIR` or
+`~/.omlx`. Then the existing patcher can run. This **replaces** the old
+“start the server once so oMLX materializes settings” step. `--init-config`
+does **not** start oMLX.
+
+`--init-config --bootstrap-check` prints paths and must not write.
 
 ## (e) Stop by port
 

@@ -1,22 +1,27 @@
 #!/usr/bin/env python3
-"""8-slot all-flash warm + acceptance battery — north-star final shape.
+"""8-slot all-flash warm + acceptance battery.
 
-Shape: 2x ~240k-measured orchestrators (prompt_tokens 240,393), 2x ~32K TDD,
-2x ~64K coders, 2x ~64K auditors. Do not sell 252K until the harness hits it.
+Default (issue #40 / L1): 1x ~240k-measured head + short slots.
+Dual-head is gated: pass --dual-head. Do not make dual the default.
+
+Do not sell 252K until the harness hits it (report JSON prompt_tokens).
 Server: oMLX 0.6.4 flash-next on :8000, chunked on, MTP off, enforcer 107.5GB.
 
-Phases:
-  W1  2x252K simultaneous cold fill (boot-warm; measured-safe from G1) + 2 ticks
-  W2  6 worker fills simultaneously (2x32K, 2x64K, 2x64K) on top of hot orchestrators
-  Footprint + df captured after each phase.
-
-Measured phys_footprint (results/ 2026-08-31): idle ~69 GB; dual-252K peaks
-W1 98 GB / G1 102 GB. Plan to 102 GB against the 107.5 GB Metal cap.
-Steady after SSD tiering ~73 GB. Do not replace those JSON files with a
-failed re-run.
+Do not replace results/warm_8slot_results.json (2026-08-31 dual-head receipt)
+with a failed re-run. L1 writes results/single_head_latency.json instead.
 
 """
 import json, subprocess, time, threading, urllib.request, statistics
+import sys as _sys
+
+DUAL_HEAD = "--dual-head" in _sys.argv
+if DUAL_HEAD:
+    _sys.argv = [a for a in _sys.argv if a != "--dual-head"]
+PHASE_ARGS = [a for a in _sys.argv[1:] if not a.startswith("-")]
+if "--help" in _sys.argv or "-h" in _sys.argv:
+    print("usage: warm-8slot.py [--dual-head] [W1] [W2]")
+    print("default: one 252K head + short slots. --dual-head restores the old pair.")
+    raise SystemExit(0)
 
 BASE = "http://127.0.0.1:8000"
 # Same resolver as scripts/verify.sh / scripts/resolve_model.py — do not
@@ -45,7 +50,8 @@ UNIT = ("Linear attention layers process the sequence with constant memory per s
         "so repeated system prompts skip recomputation. ")
 
 R = {"started": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "salt": SALT, "phases": {}, "errors": [],
-     "notes": ["8-slot all-flash: 2x252K + 2x32K + 2x64K + 2x64K, oMLX 0.6.4 chunked on, MTP off"]}
+     "notes": ["8-slot all-flash default: 1x252K head + short slots, oMLX 0.6.4 chunked on, MTP off",
+               "dual-head gated --dual-head" if DUAL_HEAD else "dual-head off"]}
 
 def save():
     with open(OUT, "w") as f:
@@ -293,9 +299,10 @@ def evaluate_gates():
                 if got != needle:
                     fails.append("%s/%s long-context retrieval %r != %r" % (phase, tag, got[:40], needle))
             delta = resid.get("cached_delta") or 0
-            if delta < 2 * 252000:
-                fails.append("%s prefix cache delta %s < 504000 (both 252K contexts must stay resident)"
-                             % (phase, delta))
+            need = 2 * 252000 if DUAL_HEAD else 252000
+            if delta < need:
+                fails.append("%s prefix cache delta %s < %s (252K head(s) must stay resident)"
+                             % (phase, delta, need))
             if (resid.get("cached_tokens_before") is None or resid.get("cached_tokens_after") is None):
                 fails.append("%s could not read stats.json cached_tokens" % phase)
     R["gate_fails"] = fails
@@ -306,10 +313,14 @@ def phase_w1():
     needle = f"NEEDLE-{SALT}"
     ORCH["orch-A"] = mk_prompt(252000, f"wA{SALT}",
                                extra=f"\n\n[needle] Remember this token: {needle}\n")
-    ORCH["orch-B"] = mk_prompt(252000, f"wB{SALT}",
-                               extra=f"\n\n[needle] Remember this token: {needle}\n")
-    jobs = [(t, ORCH[t], 8) for t in ("orch-A", "orch-B")]
-    run_group("W1_2x252k_boot_warm", jobs, tick_schedule=[(240, "tick-1"), (600, "tick-2")])
+    tags = ["orch-A"]
+    if DUAL_HEAD:
+        ORCH["orch-B"] = mk_prompt(252000, f"wB{SALT}",
+                                   extra=f"\n\n[needle] Remember this token: {needle}\n")
+        tags = ["orch-A", "orch-B"]
+    jobs = [(t, ORCH[t], 8) for t in tags]
+    name = "W1_2x252k_boot_warm" if DUAL_HEAD else "W1_1x252k_boot_warm"
+    run_group(name, jobs, tick_schedule=[(240, "tick-1"), (600, "tick-2")])
 
 
 ORCH = {}
@@ -321,11 +332,10 @@ def phase_w2():
             ("coder-2", mk_prompt(64000, f"c2{SALT}"), 8),
             ("audit-1", mk_prompt(64000, f"a1{SALT}"), 8),
             ("audit-2", mk_prompt(64000, f"a2{SALT}"), 8)]
-    # While the workers run, continue BOTH 252K chats (issue #18/#19): the
-    # follow-ups reuse the full prefix and ask for the embedded needle.
-    run_group("W2_6workers_on_hot_orch", jobs,
-              followups=[(150, "res-orch-A", ORCH["orch-A"], f"wA{SALT}"),
-                         (240, "res-orch-B", ORCH["orch-B"], f"wB{SALT}")])
+    follows = [(150, "res-orch-A", ORCH["orch-A"], f"wA{SALT}")]
+    if DUAL_HEAD:
+        follows.append((240, "res-orch-B", ORCH["orch-B"], f"wB{SALT}"))
+    run_group("W2_6workers_on_hot_orch", jobs, followups=follows)
 
 def guard(name, fn):
     print(f"[warm8] {name} ...", flush=True)
@@ -342,7 +352,7 @@ if advertised_ctx() < 262144:
     print("FAIL: advertised ctx < 262144 — not running the battery", flush=True)
     raise SystemExit(1)
 
-for ph in [a for a in __import__("sys").argv[1:]] or ["W1", "W2"]:
+for ph in PHASE_ARGS or ["W1", "W2"]:
     guard(ph, {"W1": phase_w1, "W2": phase_w2}[ph])
 
 R["finished"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")

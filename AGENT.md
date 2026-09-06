@@ -23,12 +23,12 @@ Read this top to bottom before touching anything.
    Metal working-set cap — `sysctl iogpu.wired_limit_mb` unset means Apple's default
    cap is active; host RAM and swap are red herrings.
 
-5. **Boot-warm both 252K orchestrators together; never cold-fill both once the fleet
-   is resident.** From empty, dual fill peaked at 98 GB (W1) and 102 GB (G1) —
-   plan to 102 GB. On top of a
-   resident stack, two fill transients can cross the cap and trigger SSD evictions
-   of hot slots. Stagger big refills. One D2 pair: 8.7 s SSD hit vs ~229 s miss;
-   two 252K prefixes may not both stay in the LRU.
+5. **Boot-warm one 252K head; never dual cold-fill once the fleet is resident.**
+   Default warm path is **1×252K role + short slots**. Dual-head is gated off
+   (`python3 scripts/warm-8slot.py --dual-head` only). Do not revert this.
+   Plan to 102 GB against the 107.5 GB Metal cap. Soft 96.8 GB is a fail.
+   Two fill transients on a resident stack can cross the cap. One D2 pair:
+   8.7 s SSD hit vs ~229 s miss; two 252K prefixes may not both stay in the LRU.
 
 6. **Process management:** `omlx serve` spawns a child server; killing the wrapper
    does nothing. Stop via port: `kill -TERM $(lsof -tnP -iTCP:8000 -sTCP:LISTEN)`.

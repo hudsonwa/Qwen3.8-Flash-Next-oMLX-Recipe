@@ -69,6 +69,7 @@ It does **not** run oMLX or Metal.
 | [BOOTSTRAP.md](BOOTSTRAP.md) | First install a–i |
 | [MODELS.md](MODELS.md) | oMLX 0.6.4 DMG SHA + HF revision |
 | [AGENT.md](AGENT.md) | Agent install rules |
+| [docs/EXITCODES.md](docs/EXITCODES.md) | Gate scripts: 0 only on full pass |
 | [docs/HARDWARE.md](docs/HARDWARE.md) | What was measured / what was not |
 | [docs/SCOPE.md](docs/SCOPE.md) | Measured appliance recipe — not a library |
 | [docs/PRIVACY.md](docs/PRIVACY.md) | KV/prefix cache on disk; FileVault assumed |

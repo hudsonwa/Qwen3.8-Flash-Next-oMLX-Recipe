@@ -30,6 +30,7 @@ SERVING = {
     },
     "model": {
         "mtp_enabled": False,
+        "mtp_num_draft_tokens": 3,
         "vlm_mtp_enabled": False,
         "max_context_window": 262144,
         "qwen4_ple_ssd_offload": True,

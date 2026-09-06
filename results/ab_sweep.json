@@ -1,0 +1,1043 @@
+{
+ "machine": {
+  "measured_at": "2026-09-06T14:24:46+0800",
+  "os": "Darwin 25.6.0",
+  "os_version": "26.6.2",
+  "hw_model": "Mac17,7",
+  "cpu": "Apple M5 Max",
+  "ram_gb": 128,
+  "arch": "arm64",
+  "omlx": "0.6.4"
+ },
+ "omlx": "0.6.4",
+ "hf_revision": "2615fc0e976e65c2f3b55daca3a948f1cdc5b9f8",
+ "peak_gb": 88.0,
+ "prompt_tokens": [
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33,
+  33
+ ],
+ "ttft_s": [
+  4.7761,
+  4.7762,
+  5.7967,
+  5.7967,
+  6.8171,
+  6.817,
+  7.7899,
+  7.7898,
+  1.3901,
+  1.3782,
+  2.9784,
+  4.0057,
+  5.0338,
+  4.0056,
+  5.0337,
+  5.5908,
+  2.2563,
+  3.4471,
+  3.4469,
+  2.2447,
+  4.4737,
+  4.4736,
+  5.4541,
+  5.454,
+  22.658,
+  22.6581,
+  23.6241,
+  23.6241,
+  1.736,
+  2.7036,
+  2.7036,
+  1.7358,
+  1.7213,
+  1.7211,
+  2.682,
+  2.682,
+  23.1967,
+  23.1968,
+  24.2166,
+  24.2166,
+  25.2371,
+  25.237,
+  26.207,
+  26.207,
+  1.6223,
+  1.6104,
+  3.4609,
+  3.4609,
+  4.488,
+  4.4879,
+  5.4594,
+  5.4592,
+  2.2542,
+  2.2407,
+  3.4342,
+  3.434,
+  4.4592,
+  4.4592,
+  5.4264,
+  5.4263
+ ],
+ "wall_s": [
+  4.7852,
+  5.7987,
+  5.799,
+  6.8195,
+  6.8195,
+  7.7909,
+  7.7922,
+  7.8841,
+  2.9807,
+  1.3919,
+  4.0078,
+  4.0079,
+  5.036,
+  5.0358,
+  5.5918,
+  5.5918,
+  3.4491,
+  4.476,
+  3.4492,
+  2.2583,
+  4.4759,
+  5.4552,
+  5.4565,
+  5.6125,
+  22.6588,
+  23.6253,
+  23.6254,
+  23.72,
+  1.7369,
+  2.7049,
+  2.7997,
+  2.7045,
+  2.6844,
+  1.7231,
+  2.6843,
+  2.7765,
+  23.1975,
+  24.2188,
+  24.219,
+  25.2392,
+  25.2393,
+  26.2081,
+  26.2087,
+  26.3071,
+  3.4634,
+  1.6245,
+  3.4633,
+  4.4904,
+  4.4904,
+  5.4602,
+  5.5578,
+  5.4604,
+  3.435,
+  2.2561,
+  4.4616,
+  3.4361,
+  4.4615,
+  5.4275,
+  5.4289,
+  5.5243
+ ],
+ "cached_tokens": [
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0
+ ],
+ "n": 3,
+ "burst_decode_mode": "balanced",
+ "arms": [
+  {
+   "label": "mc8_chunked_on",
+   "n_jobs": 8,
+   "settings": {
+    "chunked_prefill": true,
+    "max_concurrent_requests": 8,
+    "burst_decode_mode": "balanced"
+   },
+   "rows": [
+    {
+     "batch_wall_s": 7.8852,
+     "jobs": [
+      {
+       "ttft_s": 4.7761,
+       "wall_s": 4.7852,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 4.7762,
+       "wall_s": 5.7987,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 5.7967,
+       "wall_s": 5.799,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 5.7967,
+       "wall_s": 6.8195,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 6.8171,
+       "wall_s": 6.8195,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 6.817,
+       "wall_s": 7.7909,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 7.7899,
+       "wall_s": 7.7922,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 7.7898,
+       "wall_s": 7.8841,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      }
+     ],
+     "peak_gb": 88.0
+    },
+    {
+     "batch_wall_s": 5.5929,
+     "jobs": [
+      {
+       "ttft_s": 1.3901,
+       "wall_s": 2.9807,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 1.3782,
+       "wall_s": 1.3919,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 2.9784,
+       "wall_s": 4.0078,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 4.0057,
+       "wall_s": 4.0079,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 5.0338,
+       "wall_s": 5.036,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 4.0056,
+       "wall_s": 5.0358,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 5.0337,
+       "wall_s": 5.5918,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 5.5908,
+       "wall_s": 5.5918,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      }
+     ],
+     "peak_gb": 88.0
+    },
+    {
+     "batch_wall_s": 5.6136,
+     "jobs": [
+      {
+       "ttft_s": 2.2563,
+       "wall_s": 3.4491,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 3.4471,
+       "wall_s": 4.476,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 3.4469,
+       "wall_s": 3.4492,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 2.2447,
+       "wall_s": 2.2583,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 4.4737,
+       "wall_s": 4.4759,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 4.4736,
+       "wall_s": 5.4552,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 5.4541,
+       "wall_s": 5.4565,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 5.454,
+       "wall_s": 5.6125,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      }
+     ],
+     "peak_gb": 88.0
+    }
+   ],
+   "prompt_tokens": [
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33
+   ],
+   "ttft_s": [
+    4.7761,
+    4.7762,
+    5.7967,
+    5.7967,
+    6.8171,
+    6.817,
+    7.7899,
+    7.7898,
+    1.3901,
+    1.3782,
+    2.9784,
+    4.0057,
+    5.0338,
+    4.0056,
+    5.0337,
+    5.5908,
+    2.2563,
+    3.4471,
+    3.4469,
+    2.2447,
+    4.4737,
+    4.4736,
+    5.4541,
+    5.454
+   ],
+   "wall_s": [
+    4.7852,
+    5.7987,
+    5.799,
+    6.8195,
+    6.8195,
+    7.7909,
+    7.7922,
+    7.8841,
+    2.9807,
+    1.3919,
+    4.0078,
+    4.0079,
+    5.036,
+    5.0358,
+    5.5918,
+    5.5918,
+    3.4491,
+    4.476,
+    3.4492,
+    2.2583,
+    4.4759,
+    5.4552,
+    5.4565,
+    5.6125
+   ],
+   "cached_tokens": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "label": "mc4_chunked_on",
+   "n_jobs": 4,
+   "settings": {
+    "chunked_prefill": true,
+    "max_concurrent_requests": 8,
+    "burst_decode_mode": "balanced"
+   },
+   "rows": [
+    {
+     "batch_wall_s": 23.7204,
+     "jobs": [
+      {
+       "ttft_s": 22.658,
+       "wall_s": 22.6588,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 22.6581,
+       "wall_s": 23.6253,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 23.6241,
+       "wall_s": 23.6254,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 23.6241,
+       "wall_s": 23.72,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      }
+     ],
+     "peak_gb": 70.0
+    },
+    {
+     "batch_wall_s": 2.8002,
+     "jobs": [
+      {
+       "ttft_s": 1.736,
+       "wall_s": 1.7369,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 2.7036,
+       "wall_s": 2.7049,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 2.7036,
+       "wall_s": 2.7997,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 1.7358,
+       "wall_s": 2.7045,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      }
+     ],
+     "peak_gb": 70.0
+    },
+    {
+     "batch_wall_s": 2.777,
+     "jobs": [
+      {
+       "ttft_s": 1.7213,
+       "wall_s": 2.6844,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 1.7211,
+       "wall_s": 1.7231,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 2.682,
+       "wall_s": 2.6843,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 2.682,
+       "wall_s": 2.7765,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      }
+     ],
+     "peak_gb": 70.0
+    }
+   ],
+   "prompt_tokens": [
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33
+   ],
+   "ttft_s": [
+    22.658,
+    22.6581,
+    23.6241,
+    23.6241,
+    1.736,
+    2.7036,
+    2.7036,
+    1.7358,
+    1.7213,
+    1.7211,
+    2.682,
+    2.682
+   ],
+   "wall_s": [
+    22.6588,
+    23.6253,
+    23.6254,
+    23.72,
+    1.7369,
+    2.7049,
+    2.7997,
+    2.7045,
+    2.6844,
+    1.7231,
+    2.6843,
+    2.7765
+   ],
+   "cached_tokens": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "label": "mc8_chunked_off",
+   "n_jobs": 8,
+   "settings": {
+    "chunked_prefill": false,
+    "max_concurrent_requests": 8,
+    "burst_decode_mode": "balanced"
+   },
+   "rows": [
+    {
+     "batch_wall_s": 26.308,
+     "jobs": [
+      {
+       "ttft_s": 23.1967,
+       "wall_s": 23.1975,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 23.1968,
+       "wall_s": 24.2188,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 24.2166,
+       "wall_s": 24.219,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 24.2166,
+       "wall_s": 25.2392,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 25.2371,
+       "wall_s": 25.2393,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 25.237,
+       "wall_s": 26.2081,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 26.207,
+       "wall_s": 26.2087,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 26.207,
+       "wall_s": 26.3071,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      }
+     ],
+     "peak_gb": 72.0
+    },
+    {
+     "batch_wall_s": 5.5588,
+     "jobs": [
+      {
+       "ttft_s": 1.6223,
+       "wall_s": 3.4634,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 1.6104,
+       "wall_s": 1.6245,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 3.4609,
+       "wall_s": 3.4633,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 3.4609,
+       "wall_s": 4.4904,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 4.488,
+       "wall_s": 4.4904,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 4.4879,
+       "wall_s": 5.4602,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 5.4594,
+       "wall_s": 5.5578,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 5.4592,
+       "wall_s": 5.4604,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      }
+     ],
+     "peak_gb": 72.0
+    },
+    {
+     "batch_wall_s": 5.5253,
+     "jobs": [
+      {
+       "ttft_s": 2.2542,
+       "wall_s": 3.435,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 2.2407,
+       "wall_s": 2.2561,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 3.4342,
+       "wall_s": 4.4616,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 3.434,
+       "wall_s": 3.4361,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 4.4592,
+       "wall_s": 4.4615,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 4.4592,
+       "wall_s": 5.4275,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 5.4264,
+       "wall_s": 5.4289,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      },
+      {
+       "ttft_s": 5.4263,
+       "wall_s": 5.5243,
+       "prompt_tokens": 33,
+       "cached_tokens": 0,
+       "error": null
+      }
+     ],
+     "peak_gb": 72.0
+    }
+   ],
+   "prompt_tokens": [
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33,
+    33
+   ],
+   "ttft_s": [
+    23.1967,
+    23.1968,
+    24.2166,
+    24.2166,
+    25.2371,
+    25.237,
+    26.207,
+    26.207,
+    1.6223,
+    1.6104,
+    3.4609,
+    3.4609,
+    4.488,
+    4.4879,
+    5.4594,
+    5.4592,
+    2.2542,
+    2.2407,
+    3.4342,
+    3.434,
+    4.4592,
+    4.4592,
+    5.4264,
+    5.4263
+   ],
+   "wall_s": [
+    23.1975,
+    24.2188,
+    24.219,
+    25.2392,
+    25.2393,
+    26.2081,
+    26.2087,
+    26.3071,
+    3.4634,
+    1.6245,
+    3.4633,
+    4.4904,
+    4.4904,
+    5.4602,
+    5.5578,
+    5.4604,
+    3.435,
+    2.2561,
+    4.4616,
+    3.4361,
+    4.4615,
+    5.4275,
+    5.4289,
+    5.5243
+   ],
+   "cached_tokens": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  }
+ ],
+ "profile_restored": "serving",
+ "fails": [],
+ "pass": true,
+ "concurrency_gate": "partial: launchd argv --max-concurrent-requests 8 pins live mc; mc4 arm snapshot still 8. First post-restart batch is load, not a 4-slot proof.",
+ "chunked_short_jobs": "measured on/off"
+}

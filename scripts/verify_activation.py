@@ -41,8 +41,20 @@ def log_has_mtp(conf: Path) -> bool:
 def checkpoint_has_mtp(model_src: Path) -> bool:
     names = [n for n in os.listdir(model_src) if os.path.isfile(os.path.join(model_src, n))]
     hits = [n for n in names if n.lower().startswith("mtp.") or "mtp.safetensors" in n.lower()]
-    print("==> mtp files:", hits or "none")
-    return bool(hits)
+    if hits:
+        print("==> mtp files:", hits)
+        return True
+    idx = model_src / "model.safetensors.index.json"
+    if idx.is_file():
+        try:
+            wm = (json.loads(idx.read_text()).get("weight_map") or {})
+        except Exception:
+            wm = {}
+        keys = [k for k in wm if "mtp." in k.lower() or k.lower().startswith("mtp")]
+        print("==> mtp index keys:", len(keys))
+        return len(keys) > 0
+    print("==> mtp files: none")
+    return False
 
 
 def main() -> int:

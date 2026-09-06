@@ -3,7 +3,18 @@
 Do **not** headline 8-token dummy completions. This file is the protocol.
 Cite the JSON; do not copy tok/s into a second headline.
 
-Two contracts — do not mix them.
+Three families — **do not average them**.
+
+1. **This protocol** — Issue 9 `results/decode_table.json`. Cite the JSON.
+   Concurrency-1 MTP-off `generation_tok_s_mean` in that file is 18.43–19.01
+   (other cells differ; do not flatten the table). Not the anecdote. Not
+   prefill walls.
+2. **Old solo MTP anecdote** — ~60.9 tok/s MTP on vs ~86 off
+   ([PROVENANCE.md](PROVENANCE.md)). Not `decode_table.json`.
+3. **Prefill walls** — historical dual fill 483.62 / 488.35 s
+   (`results/warm_8slot_results.json`). Not decode tok/s.
+
+Two contracts inside family 1 — do not mix them either.
 
 ## Issue 9 (current `results/decode_table.json`)
 

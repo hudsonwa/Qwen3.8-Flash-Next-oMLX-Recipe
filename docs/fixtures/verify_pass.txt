@@ -1,0 +1,12 @@
+==> ctx advertised: 262144 (OK)
+==> phys_footprint: 69.00 GB (idle band 60–80 GB)
+==> live generation: READY
+==> live generation contains READY
+==> settings.json chunked_prefill: true
+==> hot_cache_max_size: 0 (daily)
+==> enforcer line found in <omlx-logs>/server.log (this boot)
+==> port owner: omlx-server pid <pid>
+==> argv has no --hot-cache-max-size
+==> no second omlx/mlx-serve/mtplx process
+==> ssd-cache free: <free-gb> GB (>=100)
+PASS: all checks green.

@@ -14,9 +14,19 @@ stated). Not folklore.
    advertised value (`scripts/verify.sh` does). Trust the API, not the settings file.
 
 3. **MTP on this checkpoint, this box — leave it off.**
-   Load receipt **exists**: `results/mtp_on_off.json` (short-load only).
-   Short-load did not win. Numbers: [PROFILE.md](PROFILE.md).
-   `decode_table.json` is still not published.
+   Keep **both** numbers; they are different experiments:
+   - **Upstream oMLX 0.6.4 notes** claim Lightning MTP speedups on this family
+     (batch-one Flash-Next TG; warm-prefix MTP sidecar restore; isolated MTP
+     patches). Source: https://github.com/jundot/omlx/releases/tag/v0.6.4
+   - **This box, 8-way short-load:** `results/mtp_on_off.json` n=3, `n_jobs=8`.
+     Off batch walls 6.92 / 5.53 / 5.54 s (mean 6.00 s, peak 72 GB). On:
+     27.16 / 5.65 / 5.68 s (mean 12.83 s, peak 73 GB). First MTP batch ~27 s.
+     Short-load did not win.
+   - **This box, solo anecdote (not that JSON):** ~60.9 tok/s MTP on vs ~86 off
+     ([PROVENANCE.md](PROVENANCE.md)). Do not delete either figure.
+   Likely deltas vs upstream: context length (their 4K–32K vs our 33-token
+   jobs), 8-way vs batch-one, 0.6.4 MTP state isolation across engines, this
+   oQ4e quant. Filename `-mtp` ≠ on. Decode table: [results/README.md](../results/README.md).
 
 4. **Killing the `omlx serve` wrapper does not stop the server.** The wrapper spawns
    a child `omlx-server` that survives. Stop by port:

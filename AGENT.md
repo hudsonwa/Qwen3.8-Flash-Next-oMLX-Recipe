@@ -36,8 +36,9 @@ Read this top to bottom before touching anything.
    and the OLD one keeps serving with whatever flags it was started with.
 
 7. **Do not enable MTP** (`mtp_enabled: true`) on this box / this checkpoint.
-   Load receipt: `results/mtp_on_off.json` (short-load only). Short-load did
-   not win. Leave MTP off. `decode_table.json` is unpublished.
+   Keep both numbers: solo anecdote ~60.9 vs ~86, and `results/mtp_on_off.json`
+   8-way short-load (did not win). Upstream 0.6.4 notes claim Lightning MTP
+   speedups on batch-one — see docs/TRAPS.md #3. Leave MTP off.
 
 8. **Fail closed.** If `scripts/verify.sh` reports a miss, stop and fix — do not
    declare success with degraded settings. A stack serving 131072-ctx instead of

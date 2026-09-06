@@ -20,8 +20,12 @@ What this repository is, and is not.
 
 - `scheduler.chunked_prefill: true`, `max_concurrent_requests: 8`
 - memory guard thresholds as in README
-- `mtp_enabled: false` on this checkpoint (anecdote 60.9 vs ~86 tok/s solo until
-  `results/mtp_on_off.json` exists under the decode protocol)
+- `mtp_enabled: false` on this checkpoint. **Keep both:**
+  - solo anecdote **~60.9 tok/s on vs ~86 off** (not a decode table)
+  - load receipt `results/mtp_on_off.json` (8-way short, n=3): off mean batch
+    **6.00 s** vs on **12.83 s** (first on-batch 27.16 s), peak 73 GB
+  Upstream 0.6.4 notes still claim Lightning MTP speedups on batch-one
+  Flash-Next — see [TRAPS.md](TRAPS.md) #3. Do not delete either number.
 - quarantine `--model-dir` with one symlink
 - optional `--state` so settings are not only in `~/.omlx`
 - measurement scripts and receipts in `results/`

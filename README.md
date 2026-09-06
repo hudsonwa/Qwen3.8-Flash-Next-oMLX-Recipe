@@ -132,10 +132,11 @@ Per-model (`~/.omlx/model_settings.json`): `mtp_enabled: false`,
 `max_context_window: 262144`, `qwen4_ple_ssd_offload: true` for the flash
 checkpoint.
 
-`mtp_enabled: false` is **measured on this box / this checkpoint** (solo
-60.9 tok/s on vs ~86 off). Load receipt: `results/mtp_on_off.json` (8-way
-short jobs). Short-load did not win — leave MTP off. That file is not a
-decode-table A/B (`decode_table.json` is still unpublished).
+`mtp_enabled: false` is **measured on this box / this checkpoint**. Keep both:
+solo anecdote 60.9 tok/s on vs ~86 off, and `results/mtp_on_off.json` 8-way
+short-load (off mean 6.00 s vs on 12.83 s). Upstream 0.6.4 notes claim Lightning
+MTP speedups on batch-one Flash-Next — see [docs/TRAPS.md](docs/TRAPS.md) #3.
+Leave MTP off. Decode protocol: [docs/DECODE.md](docs/DECODE.md).
 
 `setup.sh` patches both files. Missing files are a **fail** (start the server
 once so oMLX writes them, stop it, re-run setup.sh). oMLX version must be

@@ -81,7 +81,7 @@ print(str((d.get("cache") or {}).get("hot_cache_max_size") or "0"))' "$HOME/.oml
     say "hot_cache_max_size=${hot} (OMLX_ALLOW_HOT12=1 variant under test)"
   else
     case "$hot" in
-      0|"0") say "hot_cache_max_size: 0 (daily)" ;;
+      0) say "hot_cache_max_size: 0 (daily)" ;;
       *) miss "daily profile requires hot_cache_max_size=0 (got ${hot:-empty}); set OMLX_ALLOW_HOT12=1 for the documented 12GB variant" ;;
     esac
   fi

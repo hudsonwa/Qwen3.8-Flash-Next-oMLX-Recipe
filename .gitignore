@@ -10,3 +10,4 @@ __pycache__/
 *.tmp.*
 results/warm_8slot_latest.json
 results/warm_8slot_2*.json
+results/_canary_prefix_*.txt

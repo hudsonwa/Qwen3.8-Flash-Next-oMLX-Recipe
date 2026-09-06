@@ -1,0 +1,1 @@
+Return only JSON with no markdown and no extra keys: {"canary": true, "n": 1}

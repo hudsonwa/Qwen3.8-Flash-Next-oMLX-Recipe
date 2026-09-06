@@ -22,6 +22,7 @@ Dated receipts. Do not mix revisions.
 | `omlx27_4way_results.json` | 27B dense 4×118K FIFO vs chunked | 2026-08-31 |
 | `p4_combined_results.json` | Dual-engine stress | 2026-08-31 |
 | `decode_table.json` | **Published.** Solo + 8-way-short, n=3, temp 0, thinking off, unique salt. Prefill vs generation tok/s. Daily hot=0 / mc=8 / MTP off. Protocol: [docs/DECODE.md](../docs/DECODE.md). | 2026-09-07 |
+| `quality_canary.json` | **Published.** Fail-closed canary (needle in ~229k prefix, JSON-only, short code). **Not a full eval harness.** | 2026-09-07 |
 
 Every new JSON must include `machine` (chip, RAM, macOS, oMLX, date) from
 `scripts/machine_stamp.py` — except a projection-only file, which must cite

@@ -409,6 +409,29 @@ for ph in PHASE_ARGS or ["W1", "W2"]:
             save()
             print("FAIL: quality_suite after W1 rc=%s" % rc, flush=True)
             raise SystemExit(1)
+        qc = _HERE / "quality_canary.py"
+        if qc.is_file() and ORCH.get("orch-A"):
+            prefix_path = _RES / ("_canary_prefix_%s.txt" % SALT)
+            prefix_path.write_text(ORCH["orch-A"], encoding="utf-8")
+            qc_out = str(_RES / "quality_canary.json")
+            if os.path.basename(qc_out) in _PROTECT:
+                raise SystemExit("refuse: quality canary out is protected")
+            needle = "NEEDLE-%s" % SALT
+            qrc = subprocess.run(
+                [_sys.executable, str(qc), "--prefix-file", str(prefix_path),
+                 "--needle", needle, "--out", qc_out]
+            ).returncode
+            R["quality_canary_after_W1"] = qrc
+            save()
+            try:
+                prefix_path.unlink()
+            except OSError:
+                pass
+            if qrc != 0:
+                R["errors"].append("quality_canary.py after W1 rc=%s" % qrc)
+                save()
+                print("FAIL: quality_canary after W1 rc=%s" % qrc, flush=True)
+                raise SystemExit(1)
 
 R["finished"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
 R["final_footprint"] = footprint()

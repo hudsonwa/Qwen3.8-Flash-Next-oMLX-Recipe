@@ -1,0 +1,3 @@
+Reply with only this Python and nothing else:
+def ping():
+    return 42

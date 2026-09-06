@@ -26,5 +26,6 @@ Warmup discarded. N≥3. Unique `[variant salt]` so prefix cache is 0.
 
 ## Evidence layout
 
-`evidence/<phase>/` is for local traces (SSE, logs). Not required in git.
-Published numbers live in `results/` with a `machine` stamp.
+One proof home: published receipts are **`results/`** (schema + CI).
+`evidence/<phase>/` is raw lab dumps (SSE, logs). Not required in git.
+`scripts/check-results.py` fails if `evidence/` still contains JSON.

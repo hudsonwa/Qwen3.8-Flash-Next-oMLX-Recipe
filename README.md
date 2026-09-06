@@ -73,14 +73,18 @@ Why a single oMLX process: see [docs/BATTERY.md](docs/BATTERY.md) for two
 
 ## Quick start
 
+Full first-install path: **[BOOTSTRAP.md](BOOTSTRAP.md)** (a–i).
+`setup.sh` does **not** install oMLX and does **not** download weights.
+
 ```bash
+# after oMLX 0.6.4 is in ~/Applications and the pinned checkpoint exists:
 git clone https://github.com/hudsonwa/Qwen3.8-Flash-Next-oMLX-Recipe.git
 cd Qwen3.8-Flash-Next-oMLX-Recipe
-bash setup.sh                    # fail-closed; renders scripts/serve-flash.sh; no launchd
-bash scripts/serve-flash.sh      # manual launch
-bash scripts/verify.sh           # ctx, footprint, live generation — fail-closed
-# optional (~13 min acceptance battery + boot-warm):
-python3 scripts/warm-8slot.py
+kill -TERM $(lsof -tnP -iTCP:8000 -sTCP:LISTEN)   # (e) stop by port if anything is up
+bash setup.sh                                      # (f) patch config only
+bash scripts/serve-flash.sh                        # (g) daily: hot=0, mc=8, MTP off
+bash scripts/verify.sh                             # (h) fail-closed
+# optional: python3 scripts/warm-8slot.py          # (i) one 252K head + short slots
 ```
 
 ## Quick ops

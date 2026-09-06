@@ -10,6 +10,10 @@ Daily profile (unchanged by PR #48): **1×252K head + short slots**, MTP **off**
 [MODELS.md](MODELS.md). `--hot-cache-max-size 12GB` is an optional measured
 variant, not the default.
 
+SSD KV/prefix cache (`~/.omlx/ssd-cache`) is prompt-derived data at rest.
+FileVault is assumed. Wipe only after the server is stopped:
+[docs/PRIVACY.md](docs/PRIVACY.md). “Keep ~100 GB free” is capacity, not a wipe.
+
 Do these steps in order.
 
 ## (a) Machine
@@ -42,11 +46,16 @@ echo 2615fc0e976e65c2f3b55daca3a948f1cdc5b9f8 \
 
 Quarantine dir (one symlink) is required by the launch commands — see MODELS.md.
 
-## (d) First serve so oMLX writes config
+## (d) Init config (do not start oMLX)
 
-Start the server **once** so it creates `~/.omlx/settings.json` and
-`~/.omlx/model_settings.json`. Then stop it (next step). Missing files are a
-**fail** for `setup.sh`.
+`bash setup.sh --init-config` writes the minimal `settings.json` and
+`model_settings.json` this recipe patches (`chunked_prefill`, mc=8, hot=0,
+exact model id, MTP off, ctx 262144, PLE offload) into `--state DIR` or
+`~/.omlx`. Then the existing patcher can run. This **replaces** the old
+“start the server once so oMLX materializes settings” step. `--init-config`
+does **not** start oMLX.
+
+`--init-config --bootstrap-check` prints paths and must not write.
 
 ## (e) Stop by port
 
@@ -66,6 +75,9 @@ bash setup.sh
 ```
 
 Dry run (no writes): `bash setup.sh --bootstrap-check` (issue #51).
+`--restore` copies the newest `settings.json.bak.<utc>` /
+`model_settings.json.bak.<utc>` beside each file. Fail closed if no bak.
+`--restore --bootstrap-check` prints paths and must not write.
 
 ## (g) Serve daily flags
 

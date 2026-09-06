@@ -221,6 +221,9 @@ def mean(xs):
 
 
 def dump(receipt: dict, path: Path):
+    from receipt_guard import refuse_overwrite
+    force = os.environ.get("RECEIPT_FORCE_REPLACE") == "1"
+    refuse_overwrite(path, force_replace=force)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(receipt, indent=2) + "\n")

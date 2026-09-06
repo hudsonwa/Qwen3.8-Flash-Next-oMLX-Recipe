@@ -102,11 +102,14 @@ def extract_json(text: str):
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", default="http://127.0.0.1:8000/v1")
-    ap.add_argument("--out", default=str(ROOT / "results" / "quality_canary.json"))
+    ap.add_argument("--out", default=None, help="default: timestamped results/quality_canary_<utc>.json")
+    ap.add_argument("--force-replace", action="store_true",
+                    help="overwrite a committed stamped receipt only with a CHANGELOG note")
     ap.add_argument("--prefix-file", help="Use this 240k prompt instead of generating one")
     ap.add_argument("--needle", default=NEEDLE)
     ap.add_argument("--skip-240k", action="store_true")
     args = ap.parse_args()
+    from receipt_guard import timestamped, write_json  # noqa: E402
     os.environ["OMLX_REQUIRE_LIVE"] = "1"
     os.environ["OMLX_BASE"] = args.base
     try:
@@ -181,18 +184,13 @@ def main() -> int:
         "fails": fails,
         "pass": not fails,
     }
-    path = Path(args.out)
-    protect = {
-        "warm_8slot_results.json",
-        "hot_cache_one_brain.json",
-        "hot_cache_current.json",
-        "hot_cache_one_brain_pr48.json",
-    }
-    if path.name in protect:
-        print("refuse: would overwrite protected receipt", path, file=sys.stderr)
+    path = Path(args.out) if args.out else timestamped("quality_canary")
+    latest = ROOT / "results" / "quality_canary_latest.json"
+    try:
+        write_json(path, out, force_replace=args.force_replace, latest=latest)
+    except SystemExit as e:
+        print(e, file=sys.stderr)
         return 1
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(out, indent=2) + "\n")
     print("wrote", path, "pass", out["pass"], "fails", fails or "none")
     return 1 if fails else 0
 

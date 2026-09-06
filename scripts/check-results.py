@@ -60,8 +60,24 @@ def hot_size(obj: dict) -> bool:
     return False
 
 
+def evidence_json() -> list[Path]:
+    """Second store: any JSON under evidence/ is a published-receipt leak."""
+    ev = ROOT / "evidence"
+    if not ev.is_dir():
+        return []
+    found: list[Path] = []
+    for p in ev.rglob("*.json"):
+        if p.is_file():
+            found.append(p)
+    return found
+
+
 def main() -> int:
     fails: list[str] = []
+    extra = evidence_json()
+    if extra:
+        for p in extra:
+            fails.append("second store JSON %s (published receipts belong in results/)" % p.relative_to(ROOT))
     files = sorted(RES.glob("*.json"))
     if not files:
         print("FAIL: no results/*.json", file=sys.stderr)

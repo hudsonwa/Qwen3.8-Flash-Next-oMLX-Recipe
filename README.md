@@ -17,14 +17,18 @@ generation tok/s: results/decode_table.json
 
 These numbers are from **one dedicated 128 GB Apple Silicon Mac** (M5 Max-class,
 macOS 26) unless a newer file is in `results/`. They are **not portable**.
-**Zero independent reproductions** as of [VERSION](VERSION). A second machine
-does not exist in git unless you commit a receipt (even a 60k fill +
-`scripts/verify.sh`). Matrix: [docs/HARDWARE.md](docs/HARDWARE.md).
+**Zero independent reproductions** as of [VERSION](VERSION). The next
+credibility move is **one other 128 GB Mac** running [BOOTSTRAP.md](BOOTSTRAP.md)
++ `bash scripts/verify.sh` + `python3 scripts/quality_canary.py` and a gist or
+PR of stamped JSON. Do not invent that receipt. A second machine does not
+exist in git unless you commit one. Matrix: [docs/HARDWARE.md](docs/HARDWARE.md).
 Scope: [docs/SCOPE.md](docs/SCOPE.md).
 
 - Metal working-set cap ≈ **107.5 GB** (not “128 GB RAM”). Planning peak = **102 GB**.
   Soft **96.8 GB** is a fail.
-- Keep ~**100 GB free** on the SSD cache volume (`~/.omlx/ssd-cache`).
+- Keep ~**100 GB free** on the SSD cache volume (`~/.omlx/ssd-cache`). That is
+  a **capacity** rule, not a wipe. Prefix/KV on disk is unencrypted by this
+  recipe — [docs/PRIVACY.md](docs/PRIVACY.md).
 - Do **not** also run a second GPU-heavy app on this machine.
 - Two 252K prefixes may not both stay in the LRU.
 - **Install** hits GitHub (oMLX DMG) and Hugging Face (checkpoint). **Inference**
@@ -67,8 +71,10 @@ It does **not** run oMLX or Metal.
 | [BOOTSTRAP.md](BOOTSTRAP.md) | First install a–i |
 | [MODELS.md](MODELS.md) | oMLX 0.6.4 DMG SHA + HF revision |
 | [AGENT.md](AGENT.md) | Agent install rules |
+| [docs/EXITCODES.md](docs/EXITCODES.md) | Gate scripts: 0 only on full pass |
 | [docs/HARDWARE.md](docs/HARDWARE.md) | What was measured / what was not |
 | [docs/SCOPE.md](docs/SCOPE.md) | Measured appliance recipe — not a library |
+| [docs/PRIVACY.md](docs/PRIVACY.md) | KV/prefix cache on disk; FileVault assumed |
 | [docs/TRAPS.md](docs/TRAPS.md) | Measured failure modes |
 | [docs/BATTERY.md](docs/BATTERY.md) | How verdicts were earned (not a second numbers table) |
 | [docs/DECODE.md](docs/DECODE.md) | Decode protocol |

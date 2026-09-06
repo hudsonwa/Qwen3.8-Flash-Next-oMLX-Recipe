@@ -13,23 +13,29 @@ STATE=""
 BOOTSTRAP_CHECK=0
 HOT_12G=0
 PRINT_BOOTSTRAP=0
+RESTORE=0
+INIT_CONFIG=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --install-agent) INSTALL_AGENT=1 ;;
     --bootstrap-check) BOOTSTRAP_CHECK=1 ;;
     --print-bootstrap) PRINT_BOOTSTRAP=1 ;;
     --hot-cache-12gb) HOT_12G=1 ;;
+    --restore) RESTORE=1 ;;
+    --init-config) INIT_CONFIG=1 ;;
     --state)
       shift
       STATE="${1:-}"
       [ -n "$STATE" ] || { echo "FAIL: gate=args --state needs a directory" >&2; exit 1; }
       ;;
     -h|--help)
-      echo "usage: bash setup.sh [--install-agent] [--state DIR] [--bootstrap-check] [--print-bootstrap] [--hot-cache-12gb]"
+      echo "usage: bash setup.sh [--install-agent] [--state DIR] [--bootstrap-check] [--print-bootstrap] [--hot-cache-12gb] [--restore] [--init-config]"
       echo "  --state DIR         isolated config dir (does not mutate ~/.omlx)"
       echo "  --bootstrap-check   dry run: same gates, no writes; names the missing gate on failure"
       echo "  --print-bootstrap   print BOOTSTRAP.md with pins filled in (no writes)"
       echo "  --hot-cache-12gb    optional one-brain RAM variant (not daily default)"
+      echo "  --restore           restore settings.json / model_settings.json from newest *.bak.<utc>"
+      echo "  --init-config       write minimal settings if missing (does not start oMLX)"
       echo "setup.sh is the config patcher. Fetch bits with scripts/fetch-pins.sh."
       exit 0
       ;;
@@ -125,7 +131,14 @@ for line in manifest.read_text().splitlines():
         print("FAIL: missing", name)
         bad += 1
         continue
-    h = hashlib.sha256(p.read_bytes()).hexdigest()
+    h = hashlib.sha256()
+    with p.open("rb") as fh:
+        while True:
+            b = fh.read(1024 * 1024)
+            if not b:
+                break
+            h.update(b)
+    h = h.hexdigest()
     if h != digest:
         print("FAIL: SHA256 mismatch", name)
         bad += 1
@@ -136,13 +149,102 @@ PY
 fi
 [ "$fail" = "1" ] && exit 1
 
+if [ "$RESTORE" = "1" ] && [ "$INIT_CONFIG" = "1" ]; then
+  echo "FAIL: gate=args --restore and --init-config are mutually exclusive" >&2
+  exit 1
+fi
+
+if [ "$RESTORE" = "1" ]; then
+  python3 - "$OMLX_CONF" "$BOOTSTRAP_CHECK" <<'PY'
+import sys
+from pathlib import Path
+conf = Path(sys.argv[1])
+dry = sys.argv[2] == "1"
+names = ("settings.json", "model_settings.json")
+todo = []
+for name in names:
+    dest = conf / name
+    cands = sorted(p for p in dest.parent.glob(name + ".bak.*") if p.is_file())
+    if not cands:
+        print("FAIL: gate=restore no bak for %s (looked for %s.bak.<utc>)" % (dest, name), file=sys.stderr)
+        sys.exit(1)
+    src = cands[-1]
+    todo.append((src, dest))
+for src, dest in todo:
+    print("RESTORE src=%s dest=%s%s" % (src, dest, " (dry-run, no write)" if dry else ""))
+    if not dry:
+        dest.write_bytes(src.read_bytes())
+if dry:
+    print("PASS: --restore --bootstrap-check (no writes)")
+    sys.exit(0)
+print("PASS: restored %d file(s) from newest bak" % len(todo))
+PY
+  [ "$BOOTSTRAP_CHECK" = "1" ] && exit 0
+fi
+
+if [ "$INIT_CONFIG" = "1" ]; then
+  python3 - "$OMLX_CONF" "$BOOTSTRAP_CHECK" "$EXACT_MODEL_ID" <<'PY'
+import json, os, sys
+from pathlib import Path
+conf = Path(sys.argv[1])
+dry = sys.argv[2] == "1"
+exact = sys.argv[3]
+settings = {
+    "scheduler": {
+        "chunked_prefill": True,
+        "prefill_priority": "context",
+        "decode_fairness": True,
+        "max_concurrent_requests": 8,
+    },
+    "memory": {
+        "prefill_memory_guard": True,
+        "memory_guard_tier": "balanced",
+        "soft_threshold": 0.85,
+        "hard_threshold": 0.95,
+    },
+    "cache": {"hot_cache_max_size": "0"},
+}
+models = {
+    "models": {
+        exact: {
+            "mtp_enabled": False,
+            "max_context_window": 262144,
+            "qwen4_ple_ssd_offload": True,
+        }
+    }
+}
+todo = [
+    (conf / "settings.json", settings),
+    (conf / "model_settings.json", models),
+]
+wrote = 0
+for dest, obj in todo:
+    if dest.exists():
+        print("INIT-CONFIG keep existing %s" % dest)
+        continue
+    print("INIT-CONFIG write %s%s" % (dest, " (dry-run, no write)" if dry else ""))
+    if dry:
+        continue
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dest.with_name(dest.name + ".tmp." + str(os.getpid()))
+    tmp.write_text(json.dumps(obj, indent=2) + "\n")
+    os.replace(tmp, dest)
+    wrote += 1
+if dry:
+    print("PASS: --init-config --bootstrap-check (no writes)")
+    sys.exit(0)
+print("PASS: --init-config (%d new file(s)); patcher can run; oMLX not started" % wrote)
+PY
+  [ "$BOOTSTRAP_CHECK" = "1" ] && exit 0
+fi
+
 if [ "$BOOTSTRAP_CHECK" = "1" ]; then
   if [ ! -f "$OMLX_CONF/settings.json" ]; then
-    echo "FAIL: gate=settings.json $OMLX_CONF/settings.json missing — a real setup.sh would fail" >&2
+    echo "FAIL: gate=settings.json $OMLX_CONF/settings.json missing — bash setup.sh --init-config" >&2
     exit 1
   fi
   if [ ! -f "$OMLX_CONF/model_settings.json" ]; then
-    echo "FAIL: gate=model_settings.json $OMLX_CONF/model_settings.json missing — a real setup.sh would fail" >&2
+    echo "FAIL: gate=model_settings.json $OMLX_CONF/model_settings.json missing — bash setup.sh --init-config" >&2
     exit 1
   fi
   echo "PASS: --bootstrap-check (no writes). A subsequent bash setup.sh would succeed on these gates."
@@ -166,14 +268,15 @@ if [ -n "$STATE" ]; then
   fi
 fi
 
-# Missing configs are a FAIL. oMLX writes them on first start; stop the server
-# and re-run setup.sh. Never exit 0 on a half-install.
+# Missing configs are a FAIL. --init-config writes the minimal JSON this
+# recipe patches. Never start oMLX just to materialize settings. Never exit 0
+# on a half-install.
 if [ ! -f "$OMLX_CONF/settings.json" ]; then
-  echo "FAIL: $OMLX_CONF/settings.json missing — start the server once so oMLX writes it, stop it, re-run setup.sh" >&2
+  echo "FAIL: $OMLX_CONF/settings.json missing — bash setup.sh --init-config (does not start oMLX)" >&2
   exit 1
 fi
 if [ ! -f "$OMLX_CONF/model_settings.json" ]; then
-  echo "FAIL: $OMLX_CONF/model_settings.json missing — start the server once so oMLX writes it, stop it, re-run setup.sh" >&2
+  echo "FAIL: $OMLX_CONF/model_settings.json missing — bash setup.sh --init-config (does not start oMLX)" >&2
   exit 1
 fi
 

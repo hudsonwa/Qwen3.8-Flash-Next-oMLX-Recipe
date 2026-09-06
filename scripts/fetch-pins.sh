@@ -31,6 +31,7 @@ while [ $# -gt 0 ]; do
   shift
 done
 
+# Streaming SHA256 (not Path.read_bytes). shasum reads in chunks.
 sha256_file() {
   shasum -a 256 "$1" | awk '{print $1}'
 }

@@ -27,6 +27,9 @@ jobs:
       - name: Dual-cold projection self-test
         run: python3 scripts/guard_dual_cold.py --self-test
 
+      - name: Streaming SHA256 self-test
+        run: python3 scripts/sha256_file.py --self-test
+
       - name: Warm harness refuses protected receipts
         run: |
           if python3 scripts/warm-8slot.py --out results/warm_8slot_results.json; then
@@ -38,6 +41,9 @@ jobs:
             exit 1
           fi
           echo "warm --out refuse OK"
+
+      - name: Receipt append-only guard
+        run: python3 scripts/receipt_guard.py --self-test
 
       - name: Results schema
         run: python3 scripts/check-results.py

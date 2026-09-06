@@ -1,5 +1,12 @@
 # results/
 
+**Published receipts live here.** Schema: [SCHEMA.md](SCHEMA.md). CI:
+`python3 scripts/check-results.py`. Tweet-sized claims need a file in this
+directory with a `machine` stamp.
+
+`evidence/` is **not** a second published store. Raw lab dumps stay there (or
+stay untracked). Do not copy receipts into `evidence/` to bypass CI.
+
 Dated receipts. Do not mix revisions.
 
 | File | What | Date |

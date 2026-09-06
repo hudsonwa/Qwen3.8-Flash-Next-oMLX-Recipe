@@ -352,6 +352,16 @@ if advertised_ctx() < 262144:
     print("FAIL: advertised ctx < 262144 — not running the battery", flush=True)
     raise SystemExit(1)
 
+if DUAL_HEAD:
+    import pathlib
+    g = pathlib.Path(__file__).resolve().parent / "guard_dual_cold.py"
+    rc = subprocess.run([_sys.executable, str(g), "--dual-head"]).returncode
+    if rc != 0:
+        R["errors"].append("L4 guard_dual_cold refused dual-head while fleet resident")
+        save()
+        print("FAIL: dual cold-fill refused while fleet resident (issue #43)", flush=True)
+        raise SystemExit(1)
+
 for ph in PHASE_ARGS or ["W1", "W2"]:
     guard(ph, {"W1": phase_w1, "W2": phase_w2}[ph])
 

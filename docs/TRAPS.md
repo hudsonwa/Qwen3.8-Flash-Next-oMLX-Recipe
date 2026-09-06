@@ -47,11 +47,11 @@ stated). Not folklore.
     identical 11K filler from 12.1 s cold into 3.4 s on the "hit". Append a unique
     `[variant <tag>]` to every repeated filler and discard unsalted repeat runs.
 
-11. **A 90 s stagger does NOT save a dual cold-fill from memory pressure** (measured
-    on the previous engine; the physics is the same here). Two simultaneous ~10 GB
-    fill transients on top of a resident stack can cross the cap. Boot-warm both
-    orchestrators from empty — W1 98 GB / G1 102 GB (plan to 102) — then never
-    cold-fill both while the fleet is resident.
+11. **Do not dual cold-fill while the fleet is resident.** Default warm path is
+    one 252K head (`scripts/warm-8slot.py`). `--dual-head` is gated;
+    `scripts/guard_dual_cold.py` exits 1 when `phys_footprint` current ≥ 74 GB.
+    A 90 s stagger does not save a dual cold-fill (two ~10 GB transients on a
+    resident stack). Historical dual-from-empty peaks: W1 98 GB / G1 102 GB.
 
 12. **The SSD cache grows to its cap by design — that's fine, disk is not the
     problem.** `ssd_cache_max_size: "auto"` resolved to a self-managed 185.8 GB LRU;
@@ -71,5 +71,9 @@ stated). Not folklore.
 15. **Never raise `iogpu.wired_limit_mb` as the fix.** The budget is the Metal
     107.5 GB cap this recipe already plans against. Raising the kernel limit is
     not a serving-profile success.
+
+16. **Short ticks during a dual 252K fill are not ~1 s.** G1 `tick-1` was
+    **24.91 s** (`results/omlx_flash_2way_results.json`), then 1.34 s / 1.31 s.
+    Cite 24.91 s when talking about a tick on top of a dual cold fill.
 
 
